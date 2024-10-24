@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Power Rank Calculator</title>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            padding-top: 100px;
+            padding-bottom: 100px; /* Increased bottom padding */
+            background-color: #f9f9f9; /* Light background for contrast */
+            display: flex;
+            flex-direction: column; /* Stack elements vertically */
+            justify-content: center; /* Center horizontally */
+            align-items: flex-start; /* Align to left */
+            height: 100vh; /* Full viewport height */
+            position: relative; /* To position floating container */
+            overflow: auto; /* Allow scrolling */
+        }
+        h1 {
+            text-align: center; /* Align title to the center */
+            color: #333;
+            margin-bottom: 20px; /* Space between title and input fields */
+        }
+        .input-container {
+            display: flex;
+            flex-direction: column; /* Stack input fields vertically */
+            width: 100%; /* Full width for responsive design */
+            max-width: 250px; /* Limit max width for better appearance */
+            margin-left: 25%; /* Align to the left */
+        }
+        .input-field {
+            margin: 5px 0; /* Vertical margin for spacing */
+            padding: 10px; /* Reduced padding for smaller input fields */
+            width: 100px; /* Fixed width for input fields */
+            border: 2px solid #ccc;
+            border-radius: 5px; /* Slightly smaller border radius */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: border-color 0.3s, box-shadow 0.3s;
+            font-size: 16px; /* Set font size to 16px or larger */
+            touch-action: manipulation; /* Prevents zooming on touch */
+        }
+        .input-field:focus {
+            border-color: #007BFF; /* Change border color on focus */
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+            outline: none; /* Remove default outline */
+        }
+        label {
+            margin-bottom: 5px;
+            display: block;
+            color: #555;
+        }
+        .input-wrapper {
+            display: flex; /* Use flexbox for alignment */
+            align-items: center; /* Align items vertically centered */
+            margin-bottom: 10px; /* Space between input fields */
+        }
+        .points {
+            margin-left: 10px; /* Space between input and points */
+            font-weight: bold;
+            color: #007BFF; /* Color for points display */
+        }
+        .percentage {
+            margin-left: 5px; /* Space between input and percentage symbol */
+            font-weight: bold; /* Bold style for emphasis */
+            color: #333; /* Same color as the title */
+        }
+        .recommendation {
+            margin-left: 10px; /* Space between input and recommendation */
+            font-weight: bold;
+            color: #FF5733; /* Color for recommendations */
+        }
+        .floating-container {
+            position: fixed; /* Fix position at the bottom */
+            top: 0; /* Align to bottom */
+            left: 0;
+            right: 0; /* Full width */
+            background-color: #007BFF; /* Background color */
+            color: white; /* Text color */
+            padding: 5px; /* Padding for spacing */
+            text-align: center; /* Center the text */
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2); /* Shadow for depth */
+            z-index: 1; /* Ensure it's on top of other elements */
+        }
+        .result {
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 20px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>Power Rank Calculator</h1>
+    <div class="input-container">
+        <label for="opps-goal">Opps Goal:</label>
+        <div class="input-wrapper">
+            <input type="tel" id="opps-goal" class="input-field" oninput="updatePowerRank()" min="1" max="100">
+            <span class="percentage">%</span>
+            <span id="opps-goal-points" class="points">0 Points</span>
+            <span id="opps-goal-recommendation" class="recommendation"></span>
+        </div>
+
+        <label for="ppvga-goal">PPVGA Goal:</label>
+        <div class="input-wrapper">
+            <input type="tel" id="ppvga-goal" class="input-field" oninput="updatePowerRank()" min="1" max="100">
+            <span class="percentage">%</span>
+            <span id="ppvga-goal-points" class="points">0 Points</span>
+            <span id="ppvga-goal-recommendation" class="recommendation"></span>
+        </div>
+
+        <label for="ppvga-cr">PPVGA CR:</label>
+        <div class="input-wrapper">
+            <input type="tel" id="ppvga-cr" class="input-field" oninput="updatePowerRank()" pattern="[0-9]*" title="Please enter a valid number" inputmode="decimal" />
+            <span class="percentage">%</span>
+            <span id="ppvga-cr-points" class="points">0 Points</span>
+            <span id="ppvga-cr-recommendation" class="recommendation"></span>
+        </div>
+        
+        <label for="bb-goal">BB Goal:</label>
+        <div class="input-wrapper">
+            <input type="tel" id="bb-goal" class="input-field" oninput="updatePowerRank()" min="1" max="100">
+            <span class="percentage">%</span>
+            <span id="bb-goal-points" class="points">0 Points</span>
+            <span id="bb-goal-recommendation" class="recommendation"></span>
+        </div>
+        
+        <label for="cru-goal">CRU Goal:</label>
+        <div class="input-wrapper">
+            <input type="tel" id="cru-goal" class="input-field" oninput="updatePowerRank()" min="1" max="100">
+            <span class="percentage">%</span>
+            <span id="cru-goal-points" class="points">0 Points</span>
+            <span id="cru-goal-recommendation" class="recommendation"></span>
+        </div>
+        
+        <label for="sales-alerts">Sales Alerts:</label>
+        <div class="input-wrapper">
+            <input type="tel" id="sales-alerts" class="input-field" oninput="updatePowerRank()" min="1" max="100">
+            <span id="sales-alerts-points" class="points">0 Points</span>
+            <span id="sales-alerts-recommendation" class="recommendation"></span>
+        </div>
+        
+        <label for="portal-boxes">Portal Boxes:</label>
+        <div class="input-wrapper">
+            <input type="tel" id="portal-boxes" class="input-field" oninput="updatePowerRank()" min="1" max="100">
+            <span id="portal-boxes-points" class="points">0 Points</span>
+            <span id="portal-boxes-recommendation" class="recommendation"></span>
+        </div>
+        
+        <label for="staffing-deficit">Staffing Deficit:</label>
+        <div class="input-wrapper">
+            <input type="number" id="staffing-deficit" class="input-field" oninput="updatePowerRank()" min="1" max="100">
+            <span id="staffing-deficit-points" class="points">0 Points</span>
+            <span id="staffing-deficit-recommendation" class="recommendation"></span>
+        </div>
+    </div>
+    <div class="floating-container">
+        <h2 id="power-rank">Power Rank: 0</h2>
+    </div>
+
+    <script>
+        function getRegScalePoint(number) {
+            if (number >= 0 && number <= 54) {
+                return 0;
+            } else if (number >= 55 && number <= 59) {
+                return 1;
+            } else if (number >= 60 && number <= 64) {
+                return 2;
+            } else if (number >= 65 && number <= 69) {
+                return 3;
+            } else if (number >= 70 && number <= 74) {
+                return 4;
+            } else if (number >= 75 && number <= 79) {
+                return 5;
+            } else if (number >= 80 && number <= 84) {
+                return 6;
+            } else if (number >= 85 && number <= 89) {
+                return 7;
+            } else if (number >= 90 && number <= 94) {
+                return 8;
+            } else if (number >= 95 && number <= 99) {
+                return 9;
+            } else if (number >= 100) {
+                return 10;
+            } else {
+                return 0; // Return 0 for invalid input
+            }
+        }
+    
+        function getCloseRateScalePoint(number) {
+            if (number < 4) {
+                return 0;
+            } else if (number >= 4 && number <= 4.99) {
+                return 8;
+            } else if (number >= 5) {
+                return 10;
+            } else {
+                return 0; // Return 0 for invalid input
+            }
+        }
+    
+        function getSalesAlertScalePoint(number) {
+            if (number > 5) {
+                return 0;
+            } else if (number >= 4 && number <= 5) {
+                return 6;
+            } else if (number >= 2 && number <= 3) {
+                return 8;
+            } else if (number >= 0 && number <= 1) {
+                return 10;
+            } else {
+                return 0; // Return 0 for invalid input
+            }
+        }
+    
+        function getPortalBoxesScalePoint(number) {
+            if (number < 2) {
+                return 0;
+            } else if (number >= 2 && number <= 3) {
+                return 6;
+            } else if (number >= 4 && number < 5) {
+                return 8;
+            } else if (number >= 5 && number < 6) {
+                return 9;
+            } else if (number >= 6) {
+                return 10;
+            } else {
+                return 0; // Return 0 for invalid input
+            }
+        }
+    
+        function getStaffDeficitScalePoint(number) {
+            if (number < -2) {
+                return 0;
+            } else if (number === -2) {
+                return 5;
+            } else if (number === -1) {
+                return 8;
+            } else if (number >= 0) {
+                return 10;
+            } else {
+                return 0; // Return 0 for invalid input
+            }
+        }
+    
+        function getNextPowerRankGoals(currentPowerRank) {
+            const targetPoints = [
+                [0, 54],   // Rank 0
+                [55, 59],  // Rank 1
+                [60, 64],  // Rank 2
+                [65, 69],  // Rank 3
+                [70, 74],  // Rank 4
+                [75, 79],  // Rank 5
+                [80, 84],  // Rank 6
+                [85, 89],  // Rank 7
+                [90, 94],  // Rank 8
+                [95, 99],  // Rank 9
+                [100, Infinity] // Rank 10
+            ];
+    
+            const nextRank = currentPowerRank + 1;
+            if (nextRank > 10) {
+                return "You have already reached the maximum power rank!";
+            }
+    
+            const [minPoints, maxPoints] = targetPoints[nextRank];
+    
+            // Initialize recommendations
+            let recommendations = {
+                metrics: []
+            };
+    
+            // Calculate the goals needed for each metric to reach the next rank
+            const metricsGoals = {
+                oppsGoal: minPoints +  1,
+                ppvgaGoal: minPoints + 1,
+                bbGoal: minPoints + 1,
+                cruGoal: minPoints + 1,
+                ppvgaCr: nextRank === 2 ? 4 : 5 ,
+                salesAlerts: nextRank === 2 ? 4 : 2,
+                portalBoxes: nextRank === 2 ? 2 : 4,
+                staffingDeficit: nextRank === 2 ? -1 : 0
+            };
+    
+            // Calculate current points for each metric
+            const currentPoints = {
+                oppsPoints: getRegScalePoint(metricsGoals.oppsGoal),
+                ppvgaPoints: getRegScalePoint(metricsGoals.ppvgaGoal),
+                bbPoints: getRegScalePoint(metricsGoals.bbGoal),
+                cruPoints: getRegScalePoint(metricsGoals.cruGoal),
+                ppvgaCrPoints: getCloseRateScalePoint(metricsGoals.ppvgaCr),
+                salesPoints: getSalesAlertScalePoint(metricsGoals.salesAlerts),
+                portalPoints: getPortalBoxesScalePoint(metricsGoals.portalBoxes),
+                staffingPoints: getStaffDeficitScalePoint(metricsGoals.staffingDeficit)
+            };
+    
+            // Calculate the difference needed to reach the next rank for each metric
+            const differences = {
+                opps: metricsGoals.oppsGoal - currentPoints.oppsPoints,
+                ppvga: metricsGoals.ppvgaGoal - currentPoints.ppvgaPoints,
+                bb: metricsGoals.bbGoal - currentPoints.bbPoints,
+                cru: metricsGoals.cruGoal - currentPoints.cruPoints,
+                ppvgaCr: metricsGoals.ppvgaCr - currentPoints.ppvgaCrPoints,
+                sales: metricsGoals.salesAlerts - currentPoints.salesPoints,
+                portal: metricsGoals.portalBoxes - currentPoints.portalPoints,
+                staffing: metricsGoals.staffingDeficit - currentPoints.staffingPoints
+            };
+    
+            // Create an array of metrics with their differences
+            for (const [metric, difference] of Object.entries(differences)) {
+                if (difference > 0) {
+                    let recommendationText;
+                    switch (metric) {
+                        case 'opps':
+                            const currentOpps = parseFloat($('#opps-goal').val());
+                            const nextThreshold = getThreshold(getRegScalePoint, currentOpps, currentPoints.oppsPoints + 1);
+                            recommendationText = `Increase Opps Goal to ${nextThreshold}% to reach the next threshold`;
+                            break;
+                        case 'ppvga':
+                            const currentPpvga = parseFloat($('#ppvga-goal').val());
+                            const nextPpvgaThreshold = getThreshold(getRegScalePoint, currentPpvga, currentPoints.ppvgaPoints + 1);
+                            recommendationText = `Increase PPVGA Goal to ${nextPpvgaThreshold}% to reach the next threshold`;
+                            break;
+                        case 'bb':
+                            const currentBb = parseFloat($('#bb-goal').val());
+                            const nextBbThreshold = getThreshold(getRegScalePoint, currentBb, currentPoints.bbPoints + 1);
+                            recommendationText = `Increase Broadband Goal to ${nextBbThreshold}% to reach the next threshold`;
+                            break;
+                        case 'cru':
+                            const currentCru = parseFloat($('#cru-goal').val());
+                            const nextCruThreshold = getThreshold(getRegScalePoint, currentCru, currentPoints.cruPoints + 1);
+                            recommendationText = `Increase CRU Goal to ${nextCruThreshold}% to reach the next threshold`;
+                            break;
+                        case 'ppvgaCr':
+                            const currentPpvgaCr = parseFloat($('#ppvga-cr').val());
+                            const nextPpvgaCrThreshold = getThreshold(getCloseRateScalePoint, currentPpvgaCr, currentPoints.ppvgaCrPoints + 1);
+                            recommendationText = `Increase PPVGA CR to ${nextPpvgaCrThreshold} to reach the next threshold`;
+                            break;
+                        case 'sales':
+                            const currentSales = parseFloat($('#sales-alerts').val());
+                            const nextSalesThreshold = getThreshold(getSalesAlertScalePoint, currentSales, currentPoints.salesPoints + 1);
+                            recommendationText = `Decrease Sales Alerts to ${nextSalesThreshold} to reach the next threshold`;
+                            break;
+                        case 'portal':
+                            const currentPortal = parseFloat($('#portal-boxes').val());
+                            const nextPortalThreshold = getThreshold(getPortalBoxesScalePoint, currentPortal, currentPoints.portalPoints + 1);
+                            recommendationText = `Increase Portal Boxes to ${nextPortalThreshold} to reach the next threshold`;
+                            break;
+                        case 'staffing':
+                            const currentStaffing = parseFloat($('#staffing-deficit').val());
+                            const nextStaffingThreshold = getThreshold(getStaffDeficitScalePoint, currentStaffing, currentPoints.staffingPoints + 1);
+                            recommendationText = `Decrease Staffing Deficit to ${nextStaffingThreshold} to reach the next threshold`;
+                            break;
+                    }
+                    recommendations.metrics.push({ metric, recommendationText });
+                }
+            }
+    
+            // Sort metrics by the smallest difference first
+            recommendations.metrics.sort((a, b) => differences[a.metric] - differences[b.metric]);
+    
+            return recommendations;
+        }
+    
+        function getThreshold(scaleFunction, currentValue, targetPoints) {
+            let nextThreshold = currentValue;
+            while (scaleFunction(nextThreshold) < targetPoints) {
+                nextThreshold += 0.1;
+            }
+            return nextThreshold.toFixed(2);
+        }
+    
+        function updatePowerRank() {
+            var oppsGoal = parseFloat($('#opps-goal').val());
+            var ppvgaGoal = parseFloat($('#ppvga-goal').val());
+            var ppvgaCr = parseFloat($('#ppvga-cr').val());
+            var bbGoal = parseFloat($('#bb-goal').val());
+            var cruGoal = parseFloat($('#cru-goal').val());
+            var salesAlerts = parseFloat($('#sales-alerts').val());
+            var portalBoxes = parseFloat($('#portal-boxes').val());
+            var staffingDeficit = parseFloat($('#staffing-deficit').val());
+    
+            // Calculate points for each input
+            var oppsPoints = getRegScalePoint(oppsGoal);
+            var ppvgaPoints = getRegScalePoint(ppvgaGoal);
+            var ppvgaCrPoints = getCloseRateScalePoint(ppvgaCr);
+            var bbPoints = getRegScalePoint(bbGoal);
+            var cruPoints = getRegScalePoint(cruGoal);
+            var salesPoints = getSalesAlertScalePoint(salesAlerts);
+            var portalPoints = getPortalBoxesScalePoint(portalBoxes);
+            var staffingPoints = getStaffDeficitScalePoint(staffingDeficit);
+    
+            // Display points next to each input with "Points" text
+            $('#opps-goal-points').text(oppsPoints + ' Points');
+            $('#ppvga-goal-points').text(ppvgaPoints + ' Points');
+            $('#ppvga-cr-points').text(ppvgaCrPoints + ' Points');
+            $('#bb-goal-points').text(bbPoints + ' Points');
+            $('#cru-goal-points').text(cruPoints + ' Points');
+            $('#sales-alerts-points').text(salesPoints + ' Points');
+            $('#portal-boxes-points'). text(portalPoints + ' Points');
+            $('#staffing-deficit-points').text(staffingPoints + ' Points');
+    
+            // Calculate total power rank
+            var average = (oppsPoints + ppvgaPoints + ppvgaCrPoints + bbPoints + cruPoints + salesPoints + portalPoints + staffingPoints) / 8;
+            var powerRank = Math.round(average);
+            // Display total power rank
+            $('#power-rank').text('Power Rank: ' + powerRank);
+    
+            // Calculate and display recommendations
+            var recommendations = getNextPowerRankGoals(powerRank);
+            for (const { metric, recommendationText } of recommendations.metrics) {
+                $(`#${metric}-goal-recommendation`).text(recommendationText);
+            }
+    
+            $('.floating-container').css('background-color', getColor(powerRank));
+        }
+    </script>
+</body>
+</html>
