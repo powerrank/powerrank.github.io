@@ -2,41 +2,41 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Power Rank Calculator</title>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 20px;
-            padding-top: 100px;
-            padding-bottom: 100px; /* Increased bottom padding */
+            padding: 5% 2%; /* Responsive padding */
             background-color: #f9f9f9; /* Light background for contrast */
+            padding-top: 150px;
+            padding-bottom: 150px;
             display: flex;
             flex-direction: column; /* Stack elements vertically */
             justify-content: center; /* Center horizontally */
-            align-items: flex-start; /* Align to left */
-            height: 100vh; /* Full viewport height */
-            position: relative; /* To position floating container */
-            overflow: auto; /* Allow scrolling */
+            align-items: center; /* Center align */
+            height: auto; /* Remove fixed height */
+            position: relative;
+            overflow-x: hidden; /* Prevent horizontal scrolling */
+            touch-action: manipulation; /* Prevents zooming on touch */
         }
         h1 {
             text-align: center; /* Align title to the center */
             color: #333;
-            margin-bottom: 20px; /* Space between title and input fields */
+            margin-bottom: 10px; /* Reduced margin */
         }
         .input-container {
-            display: flex;
-            flex-direction: column; /* Stack input fields vertically */
-            width: 100%; /* Full width for responsive design */
-            max-width: 250px; /* Limit max width for better appearance */
-            margin-left: 25%; /* Align to the left */
+            width: 50%; /* Responsive width */
+            max-width: 200px; /* Limit max width for larger screens */
+            margin: 0 auto; /* Center container */
         }
         .input-field {
-            margin: 5px 0; /* Vertical margin for spacing */
-            padding: 10px; /* Reduced padding for smaller input fields */
-            width: 100px; /* Fixed width for input fields */
+            width: 40%; /* Full width for responsive design */
+            margin: 0;
+            min-height: 20px; /* Ensure touch-friendly */
+            padding: 10px; /* Padding for input fields */
             border: 2px solid #ccc;
             border-radius: 5px; /* Slightly smaller border radius */
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -61,6 +61,7 @@
         }
         .points {
             margin-left: 10px; /* Space between input and points */
+            width: 100px;
             font-weight: bold;
             color: #007BFF; /* Color for points display */
         }
@@ -75,26 +76,122 @@
             color: #FF5733; /* Color for recommendations */
         }
         .floating-container {
-            position: fixed; /* Fix position at the bottom */
-            top: 0; /* Align to bottom */
-            left: 0;
-            right: 0; /* Full width */
-            background-color: #007BFF; /* Background color */
-            color: white; /* Text color */
-            padding: 5px; /* Padding for spacing */
-            text-align: center; /* Center the text */
-            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2); /* Shadow for depth */
-            z-index: 1; /* Ensure it's on top of other elements */
-        }
+    position: fixed; /* Keep it fixed */
+    top: 0; /* Align to bottom */
+    left: 0;
+    right: 0; /* Full width */
+    background-color: #007BFF; /* Background color */
+    color: white; /* Text color */
+    padding: 10px; /* Adjust padding for mobile */
+    text-align: center; /* Center the text */
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2); /* Shadow for depth */
+    z-index: 1; /* Lower z-index than hamburger menu */
+}
         .result {
             font-size: 24px;
             font-weight: bold;
-            margin-top: 20px;
+            margin-top: 10px;
             color: #333;
         }
+ 
+ 
+        /* Hamburger Menu Container Styles */
+.hamburger-container {
+    position: fixed; /* Keep it fixed */
+    top: 20px; /* Position it at the top */
+    left: 20px; /* Position it at the left */
+    background-color: rgba(255, 255, 255, 0.8); /* White background with opacity */
+    border-radius: 10px; /* Rounded corners */
+    padding: 10px; /* Padding around the icon */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Shadow for depth */
+    z-index: 2; /* Higher z-index to be on top of the floating container */
+}
+ 
+.hamburger-menu {
+    cursor: pointer;
+}
+ 
+.hamburger-menu .bar {
+    width: 30px;
+    height: 3px;
+    background-color: #333;
+    margin: 5px 0;
+    transition: 0.4s;
+}
+ 
+.hamburger-menu .bar:nth-child(2) {
+    width: 20px; /* Second bar slightly narrower */
+}
+        
+        /* Media Queries for Smaller Devices */
+        @media (max-width: 600px) {
+            .input-field {
+                font-size: 16px; /* Smaller font for mobile */
+            }
+            h1 {
+                font-size: 24px; /* Smaller title */
+            }
+            .floating-container {
+                padding: 5px; /* Adjust padding for mobile */
+            }
+        }
+ 
+        .slider-menu {
+    position: fixed;
+    top: 0;
+    left: -250px; /* Start hidden off-screen */
+    width: 150px; /* Width of the sliding menu */
+    height: 100%; /* Full height */
+    background-color: #007BFF; /* Background color */
+    color: white; /* Text color */
+    transition: left 0.3s ease; /* Smooth transition for sliding effect */
+    z-index: 1; /* Ensure it appears above other content */
+    padding: 20px; /* Padding inside the menu */
+}
+ 
+.slider-menu ul {
+    list-style-type: none; /* Remove bullet points */
+    margin-top: 40%;
+    padding: 0; /* Remove padding */
+}
+ 
+.slider-menu li {
+    margin: 20px 0; /* Space between menu items */
+}
+ 
+.slider-menu a {
+    color: white; /* Link color */
+    text-decoration: none; /* Remove underline */
+    font-size: 18px; /* Font size */
+}
+ 
+/* Active state for links */
+.slider-menu a:hover {
+    text-decoration: underline; /* Underline on hover */
+}
+ 
+.signature {
+    position: absolute; /* Position it absolutely within the slider */
+    bottom: 50px; /* Distance from the bottom */
+    left: 50%; /* Center horizontally */
+    transform: translateX(-50%); /* Adjust to center the text */
+    font-size: 14px; /* Font size */
+    color: #ffffff; /* Text color */
+    text-align: center; /* Center align text */
+}
+ 
+ 
     </style>
 </head>
 <body>
+    <div class="hamburger-container">
+        <div class="hamburger-menu" id="hamburger-menu">
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+        </div>
+    </div>
+ 
     <h1>Power Rank Calculator</h1>
     <div class="input-container">
         <label for="opps-goal">Opps Goal:</label>
@@ -104,7 +201,7 @@
             <span id="opps-goal-points" class="points">0 Points</span>
             <span id="opps-goal-recommendation" class="recommendation"></span>
         </div>
-
+ 
         <label for="ppvga-goal">PPVGA Goal:</label>
         <div class="input-wrapper">
             <input type="tel" id="ppvga-goal" class="input-field" oninput="updatePowerRank()" min="1" max="100">
@@ -112,7 +209,7 @@
             <span id="ppvga-goal-points" class="points">0 Points</span>
             <span id="ppvga-goal-recommendation" class="recommendation"></span>
         </div>
-
+ 
         <label for="ppvga-cr">PPVGA CR:</label>
         <div class="input-wrapper">
             <input type="tel" id="ppvga-cr" class="input-field" oninput="updatePowerRank()" pattern="[0-9]*" title="Please enter a valid number" inputmode="decimal" />
@@ -120,7 +217,7 @@
             <span id="ppvga-cr-points" class="points">0 Points</span>
             <span id="ppvga-cr-recommendation" class="recommendation"></span>
         </div>
-
+ 
         <label for="bb-goal">BB Goal:</label>
         <div class="input-wrapper">
             <input type="tel" id="bb-goal" class="input-field" oninput="updatePowerRank()" min="1" max="100">
@@ -128,7 +225,7 @@
             <span id="bb-goal-points" class="points">0 Points</span>
             <span id="bb-goal-recommendation" class="recommendation"></span>
         </div>
-
+ 
         <label for="cru-goal">CRU Goal:</label>
         <div class="input-wrapper">
             <input type="tel" id="cru-goal" class="input-field" oninput="updatePowerRank()" min="1" max="100">
@@ -136,21 +233,21 @@
             <span id="cru-goal-points" class="points">0 Points</span>
             <span id="cru-goal-recommendation" class="recommendation"></span>
         </div>
-
+ 
         <label for="sales-alerts">Sales Alerts:</label>
         <div class="input-wrapper">
             <input type="tel" id="sales-alerts" class="input-field" oninput="updatePowerRank()" min="1" max="100">
             <span id="sales-alerts-points" class="points">0 Points</span>
             <span id="sales-alerts-recommendation" class="recommendation"></span>
         </div>
-
+ 
         <label for="portal-boxes">Portal Boxes:</label>
         <div class="input-wrapper">
             <input type="tel" id="portal-boxes" class="input-field" oninput="updatePowerRank()" min="1" max="100">
             <span id="portal-boxes-points" class="points">0 Points</span>
             <span id="portal-boxes-recommendation" class="recommendation"></span>
         </div>
-
+ 
         <label for="staffing-deficit">Staffing Deficit:</label>
         <div class="input-wrapper">
             <input type="number" id="staffing-deficit" class="input-field" oninput="updatePowerRank()" min="1" max="100">
@@ -162,8 +259,33 @@
         <h2 id="power-rank">Power Rank: 0</h2>
         <p id="points-needed">Points needed for next power rank: 0</p>
     </div>
-
+ 
+    <!-- Sliding Menu -->
+<div class="slider-menu" id="slider-menu">
+    <ul>
+        <li><a href="#page1">Calculator</a></li>
+        <li><a href="#page2">Point Scale Metric</a></li>
+        <li><a href="#page3">Contact Info</a></li>
+        <li><a href="#page4">Current Event</a></li>
+    </ul>
+    <div class="signature">
+        Built by <br> The Revenue Management Team
+    </div>
+</div>
+ 
     <script>
+ 
+$(document).ready(function() {
+        $('#hamburger-menu').click(function() {
+            const sliderMenu = $('#slider-menu');
+            if (sliderMenu.css('left') === '0px') {
+                sliderMenu.css('left', '-250px'); // Hide the menu
+            } else {
+                sliderMenu.css('left', '0'); // Show the menu
+            }
+        });
+    });
+ 
         function getRegScalePoint(number) {
             if (number >= 0 && number <= 54) return 0;
             if (number >= 55 && number <= 59) return 1;
@@ -178,14 +300,14 @@
             if (number >= 100) return 10;
             return 0; // Return 0 for invalid input
         }
-    
+   
         function getCloseRateScalePoint(number) {
             if (number < 4) return 0;
             if (number >= 4 && number < 5) return 8;
             if (number >= 5) return 10;
             return 0; // Return 0 for invalid input
         }
-    
+   
         function getSalesAlertScalePoint(number) {
             if (number > 5) return 0;
             if (number >= 4) return 6;
@@ -193,7 +315,7 @@
             if (number >= 0) return 10;
             return 0; // Return 0 for invalid input
         }
-    
+   
         function getPortalBoxesScalePoint(number) {
             if (number < 2) return 0;
             if (number >= 2 && number < 4) return 6;
@@ -202,7 +324,7 @@
             if (number >= 6) return 10;
             return 0; // Return 0 for invalid input
         }
-    
+   
         function getStaffDeficitScalePoint(number) {
             if (number < -2) return 0;
             if (number === -2) return 5;
@@ -210,7 +332,7 @@
             if (number >= 0) return 10;
             return 0; // Return 0 for invalid input
         }
-    
+   
         function getPointsNeededForNextPowerRank(totalPoints) {
             // Determine the next power rank threshold based on the specified ranges
             if (totalPoints >= 4 && totalPoints <= 11) return 12 - totalPoints; // Power Rank 1
@@ -225,7 +347,7 @@
             if (totalPoints >= 76 && totalPoints <= 80) return 81 - totalPoints; // Power Rank 10
             return 0; // If totalPoints is above 80, no points needed
         }
-    
+   
         function updatePowerRank() {
             var oppsGoal = parseFloat($('#opps-goal').val()) || 0; // Default to 0 if empty
             var ppvgaGoal = parseFloat($('#ppvga-goal').val()) || 0;
@@ -235,7 +357,7 @@
             var salesAlerts = parseFloat($('#sales-alerts').val()) || 0;
             var portalBoxes = parseFloat($('#portal-boxes').val()) || 0;
             var staffingDeficit = parseFloat($('#staffing-deficit').val()) || 0;
-    
+   
             // Calculate points for each input
             var oppsPoints = getRegScalePoint(oppsGoal);
             var ppvgaPoints = getRegScalePoint(ppvgaGoal);
@@ -244,8 +366,8 @@
             var cruPoints = getRegScalePoint(cruGoal);
             var salesPoints = getSalesAlertScalePoint(salesAlerts);
             var portalPoints = getPortalBoxesScalePoint(portalBoxes);
- var staffingDeficitPoints = getStaffDeficitScalePoint(staffingDeficit);
-    
+var staffingDeficitPoints = getStaffDeficitScalePoint(staffingDeficit);
+   
             // Display points contributed by each metric
             $('#opps-goal-points').text(oppsPoints + ' Points');
             $('#ppvga-goal-points').text(ppvgaPoints + ' Points');
@@ -255,21 +377,21 @@
             $('#sales-alerts-points').text(salesPoints + ' Points');
             $('#portal-boxes-points').text(portalPoints + ' Points');
             $('#staffing-deficit-points').text(staffingDeficitPoints + ' Points');
-    
+   
             // Calculate total points
             var totalPoints = oppsPoints + ppvgaPoints + ppvgaCrPoints + bbPoints + cruPoints + salesPoints + portalPoints + staffingDeficitPoints;
-    
+   
             // Calculate current power rank based on average points
             var powerRank = Math.round(totalPoints / 8);
             $('#power-rank').text('Power Rank: ' + powerRank);
-    
+   
             // Calculate points needed for next power rank
             var pointsNeededForNextPowerRank = getPointsNeededForNextPowerRank(totalPoints);
             $('#points-needed').text('Points needed for next power rank: ' + pointsNeededForNextPowerRank);
-
+ 
             $('.floating-container').css('background-color', getColor(powerRank));
         }
-    
+   
         function getColor(powerRank) {
             switch (true) {
                 case (powerRank <= 2):
@@ -294,11 +416,13 @@
                     return '#007BFF'; // Default color
             }
         }
-
+ 
         $(document).ready(function() {
             updatePowerRank();
             $('#opps-goal, #ppvga-goal, #ppvga-cr, #bb-goal, #cru-goal, #sales-alerts, #portal-boxes, #staffing-deficit').on('input', updatePowerRank);
         });
     </script>
+ 
 </body>
 </html>
+ 
