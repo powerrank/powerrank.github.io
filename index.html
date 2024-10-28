@@ -36,7 +36,6 @@
             appearance: none; /* Remove default styling */
             -webkit-appearance: none; /* Remove default styling for Safari */
             -moz-appearance: none; /* Remove default styling for Firefox */
-            background-color: white;
             cursor: pointer; /* Change cursor to pointer */
             width: 40%; /* Full width for responsive design */
             margin: 0;
@@ -59,18 +58,10 @@
             align-items: center; /* Align items vertically centered */
             margin-bottom: 10px; /* Space between input fields */
         }
-        .input-wrapper::after {
-            content: ''; /* Create a custom dropdown arrow */
-            position: absolute;
-            top: 50%;
-            right: 10px; /* Position the arrow */
-            width: 0;
-            height: 0;
-            border-left: 5px solid transparent;
-            border-right: 5px solid transparent;
-            border-top: 5px solid #333; /* Color of the arrow */
-            transform: translateY(-50%); /* Center the arrow vertically */
-            pointer-events: none; /* Prevent interaction with the arrow */
+        
+        #staffing-deficit {
+            width: 60%; /* Set to full width */
+            max-width: 200px; /* Set a max width to match other input fields */
         }
 
         label {
@@ -270,7 +261,7 @@
  
         <label for="staffing-deficit">Staffing Deficit:</label>
 <div class="input-wrapper">
-    <select id="staffing-deficit" class="input-field" oninput="updatePowerRank()">
+    <select id="staffing-deficit" class="input-field staffing-deficit" oninput="updatePowerRank()">
         <option value="0">0 or more</option>
         <option value="-1">-1</option>
         <option value="-2">-2</option>
