@@ -33,6 +33,10 @@
             margin: 0 auto; /* Center container */
         }
         .input-field {
+            appearance: none; /* Remove default styling */
+            -webkit-appearance: none; /* Remove default styling for Safari */
+            -moz-appearance: none; /* Remove default styling for Firefox */
+            cursor: pointer; /* Change cursor to pointer */
             width: 40%; /* Full width for responsive design */
             margin: 0;
             min-height: 20px; /* Ensure touch-friendly */
@@ -48,17 +52,32 @@
             border-color: #007BFF; /* Change border color on focus */
             box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
             outline: none; /* Remove default outline */
-        }
-        label {
-            margin-bottom: 5px;
-            display: block;
-            color: #555;
-        }
+        }   
         .input-wrapper {
             display: flex; /* Use flexbox for alignment */
             align-items: center; /* Align items vertically centered */
             margin-bottom: 10px; /* Space between input fields */
         }
+        .input-wrapper::after {
+            content: ''; /* Create a custom dropdown arrow */
+            position: absolute;
+            top: 50%;
+            right: 10px; /* Position the arrow */
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 5px solid #333; /* Color of the arrow */
+            transform: translateY(-50%); /* Center the arrow vertically */
+            pointer-events: none; /* Prevent interaction with the arrow */
+        }
+
+        label {
+            margin-bottom: 5px;
+            display: block;
+            color: #555;
+        }
+        
         .points {
             margin-left: 10px; /* Space between input and points */
             width: 100px;
@@ -249,16 +268,17 @@
         </div>
  
         <label for="staffing-deficit">Staffing Deficit:</label>
-        <div class="input-wrapper">
+<div class="input-wrapper">
     <select id="staffing-deficit" class="input-field" oninput="updatePowerRank()">
-        <option value="0">0+</option>
+        <option value="0">0 or more</option>
         <option value="-1">-1</option>
         <option value="-2">-2</option>
-        <option value="-3">-3</option>
+        <option value="-3">More than -2</option>
     </select>
     <span id="staffing-deficit-points" class="points">0 Points</span>
     <span id="staffing-deficit-recommendation" class="recommendation"></span>
-        </div>
+</div>
+
         </div>
         <div class="floating-container">
         <h2 id="power-rank">Power Rank: 0</h2>
