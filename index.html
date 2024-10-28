@@ -250,12 +250,17 @@
  
         <label for="staffing-deficit">Staffing Deficit:</label>
         <div class="input-wrapper">
-            <input type="number" id="staffing-deficit" class="input-field" oninput="updatePowerRank()" min="1" max="100">
-            <span id="staffing-deficit-points" class="points">0 Points</span>
-            <span id="staffing-deficit-recommendation" class="recommendation"></span>
+    <select id="staffing-deficit" class="input-field" oninput="updatePowerRank()">
+        <option value="0">0+</option>
+        <option value="-1">-1</option>
+        <option value="-2">-2</option>
+        <option value="-3">-3</option>
+    </select>
+    <span id="staffing-deficit-points" class="points">0 Points</span>
+    <span id="staffing-deficit-recommendation" class="recommendation"></span>
         </div>
-    </div>
-    <div class="floating-container">
+        </div>
+        <div class="floating-container">
         <h2 id="power-rank">Power Rank: 0</h2>
         <p id="points-needed">Points needed for next power rank: 0</p>
     </div>
@@ -275,6 +280,26 @@
  
     <script>
  
+ $(document).ready(function() {
+    // Retrieve data from sessionStorage
+    const powerRankData = JSON.parse(sessionStorage.getItem('powerRankData'));
+
+    if (powerRankData) {
+        // Populate the input fields with the retrieved data
+        $('#opps-goal').val(powerRankData.oppsGoal);
+        $('#ppvga-goal').val(powerRankData.ppvgaGoal);
+        $('#ppvga-cr').val(powerRankData.ppvgaCr);
+        $('#bb-goal').val(powerRankData.bbGoal);
+        $('#cru-goal').val(powerRankData.cruGoal);
+        $('#sales-alerts').val(powerRankData.salesAlerts);
+        $('#portal-boxes').val(powerRankData.portalBoxes);
+        $('#staffing-deficit').val(powerRankData.staffingDeficit);
+
+        // Update the power rank based on the populated values
+        updatePowerRank();
+    }
+});
+
 $(document).ready(function() {
         $('#hamburger-menu').click(function() {
             const sliderMenu = $('#slider-menu');
@@ -326,6 +351,7 @@ $(document).ready(function() {
         }
    
         function getStaffDeficitScalePoint(number) {
+            number = parseInt(number); // Ensure it's treated as an integer
             if (number < -2) return 0;
             if (number === -2) return 5;
             if (number === -1) return 8;
@@ -366,7 +392,7 @@ $(document).ready(function() {
             var cruPoints = getRegScalePoint(cruGoal);
             var salesPoints = getSalesAlertScalePoint(salesAlerts);
             var portalPoints = getPortalBoxesScalePoint(portalBoxes);
-var staffingDeficitPoints = getStaffDeficitScalePoint(staffingDeficit);
+            var staffingDeficitPoints = getStaffDeficitScalePoint(staffingDeficit);
    
             // Display points contributed by each metric
             $('#opps-goal-points').text(oppsPoints + ' Points');
