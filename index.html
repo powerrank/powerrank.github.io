@@ -362,9 +362,23 @@ $(document).ready(function() {
         // Calculate the position
         const windowWidth = $(window).width();
         const tooltipWidth = tooltip.outerWidth();
+        const inputOffset = $(this).offset();
+        const inputHeight = $(this).outerHeight();
+
+        // Set tooltip position
+        let tooltipTop;
+        if (inputId === 'staffing-deficit') {
+            if (windowWidth < 768) { // Mobile view (you can adjust the breakpoint as needed)
+                tooltipTop = inputOffset.top + inputHeight + 10; // Position below the input
+            } else {
+                tooltipTop = inputOffset.top - tooltip.outerHeight() - 10; // Position above the input
+            }
+        } else {
+            tooltipTop = inputOffset.top - tooltip.outerHeight() - 10; // Position above the input for other fields
+        }
 
         tooltip.css({
-            top: $(this).offset().top - $(this).outerHeight() - 10, // Position above the input
+            top: tooltipTop, // Set the calculated top position
             left: (windowWidth / 2) - (tooltipWidth / 2), // Center the tooltip in the window
             display: 'block'
         });
