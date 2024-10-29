@@ -358,9 +358,14 @@ $(document).ready(function() {
         const tooltip = $('#tooltip');
 
         tooltip.text(tooltipText);
+        
+        // Calculate the position
+        const windowWidth = $(window).width();
+        const tooltipWidth = tooltip.outerWidth();
+
         tooltip.css({
             top: $(this).offset().top - $(this).outerHeight() - 10, // Position above the input
-            left: $(this).offset().left,
+            left: (windowWidth / 2) - (tooltipWidth / 2), // Center the tooltip in the window
             display: 'block'
         });
     }).blur(function() {
