@@ -465,7 +465,7 @@ $('#setting-icon').click(function(event) {
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            backgroundColor: '#007BFF',
+            backgroundColor: '#000c19',
             color: 'white',
             padding: '10px 20px',
             borderRadius: '5px',
@@ -612,16 +612,16 @@ function getStaffDeficitScalePoint(number) {
 
 function getPointsNeededForNextPowerRank(totalPoints) {
     // Determine the next power rank threshold based on the specified ranges
-    if (totalPoints >= 4 && totalPoints <= 11) return 12 - totalPoints; // Power Rank 1
-    if (totalPoints >= 12 && totalPoints <= 19) return 20 - totalPoints; // Power Rank 2
-    if (totalPoints >= 20 && totalPoints <= 27) return 28 - totalPoints; // Power Rank 3
-    if (totalPoints >= 28 && totalPoints <= 35) return 36 - totalPoints; // Power Rank 4
-    if (totalPoints >= 36 && totalPoints <= 43) return 44 - totalPoints; // Power Rank 5
-    if (totalPoints >= 44 && totalPoints <= 51) return 52 - totalPoints; // Power Rank 6
-    if (totalPoints >= 52 && totalPoints <= 59) return 60 - totalPoints; // Power Rank 7
-    if (totalPoints >= 60 && totalPoints <= 67) return 68 - totalPoints; // Power Rank 8
-    if (totalPoints >= 68 && totalPoints <= 75) return 76 - totalPoints; // Power Rank 9
-    if (totalPoints >= 76 && totalPoints <= 80) return 80 - totalPoints; // Power Rank 10
+    if (totalPoints >= 5 && totalPoints <= 7) return 8 - totalPoints; // Power Rank 1
+    if (totalPoints >= 8 && totalPoints <= 15) return 16 - totalPoints; // Power Rank 2
+    if (totalPoints >= 16 && totalPoints <= 23) return 24 - totalPoints; // Power Rank 3
+    if (totalPoints >= 24 && totalPoints <= 31) return 32 - totalPoints; // Power Rank 4
+    if (totalPoints >= 32 && totalPoints <= 39) return 40 - totalPoints; // Power Rank 5
+    if (totalPoints >= 40 && totalPoints <= 47) return 48 - totalPoints; // Power Rank 6
+    if (totalPoints >= 48 && totalPoints <= 55) return 56 - totalPoints; // Power Rank 7
+    if (totalPoints >= 56 && totalPoints <= 63) return 64 - totalPoints; // Power Rank 8
+    if (totalPoints >= 64 && totalPoints <= 71) return 72 - totalPoints; // Power Rank 9
+    if (totalPoints >= 72 && totalPoints <= 79) return 80 - totalPoints; // Power Rank 10
     return 0; // If totalPoints is above 80, no points needed
 }
 
@@ -697,4 +697,3 @@ function getColor(powerRank) {
  
 </body>
 </html>
- 
