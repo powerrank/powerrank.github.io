@@ -374,8 +374,8 @@
         <ul>
             <li><a href="">Calculator</a></li>
             <li><a href="PW Metric.png" target="_blank">Point Scale Metric</a></li>
-            <li><a href="contactinfo.html">Contact Info</a></li>
-            <li><a href="currentevent.html">Current Event</a></li>
+            <!--<li><a href="contactinfo.html">Contact Info</a></li>
+            <li><a href="currentevent.html">Current Event</a></li>-->
         </ul>
         <div class="signature">
             Built by <br> The Revenue Management Team
@@ -437,21 +437,24 @@ $('#setting-icon').click(function(event) {
     $('#fsbs-button').click(function(event) {
         console.log('FSBS button clicked');
         getCloseRateScalePointFunction = getCloseRateScalePoint; // Set to default function
-        showConfirmation('Flagship & Battleship scale selected.');
+        showConfirmation('Flagship & Battleship \nscale selected.');
+        updatePowerRank();
         event.stopPropagation(); // Prevent the click from bubbling up to the document
     });
 
     $('#csrs-button').click(function(event) {
         console.log('CSRS button clicked');
         getCloseRateScalePointFunction = getCSRSCloseRateScalePoint; // Set to CSRS function
-        showConfirmation('Cruiser & Regular scale selected.');
+        showConfirmation('Cruiser & Regular \nscale selected.');
+        updatePowerRank();
         event.stopPropagation(); // Prevent the click from bubbling up to the document
     });
 
     $('#mall-button').click(function(event) {
         console.log('Mall button clicked');
         getCloseRateScalePointFunction = getMallCloseRateScalePoint; // Set to Mall function
-        showConfirmation('Mall Location scale selected.');
+        showConfirmation('Mall Location \nscale selected.');
+        updatePowerRank();
         event.stopPropagation(); // Prevent the click from bubbling up to the document
     });
 
