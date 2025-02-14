@@ -11,7 +11,7 @@
             margin: 0;
             padding: 5% 2%; /* Responsive padding */
             background-color: #f9f9f9; /* Light background for contrast */
-            padding-top: 150px;
+            padding-top: 120px;
             padding-bottom: 150px;
             display: flex;
             flex-direction: column; /* Stack elements vertically */
@@ -26,6 +26,11 @@
             text-align: center; /* Align title to the center */
             color: #333;
             margin-bottom: 10px; /* Reduced margin */
+        }
+        h3 {
+            text-align: center; /* Align title to the center */
+            color: #333;
+            margin-bottom: 1px; /* Reduced margin */
         }
         .input-container {
             width: 50%; /* Responsive width */
@@ -297,6 +302,7 @@
         <img src="setting.png" alt="Settings" id="setting-icon" class="setting-icon">
     </div>
  
+    <h3 id="selected-scale-point">Point Scale: <span id="scale-point-text" style="color: #007BFF;">Flagship & Battleship</span></h3>
     <h1>Power Rank Calculator</h1>
     <div class="input-container">
         <label for="opps-goal">Opps Goal:</label>
@@ -433,10 +439,10 @@ $('#setting-icon').click(function(event) {
         }
     });
 
-    // Click event for the new buttons
     $('#fsbs-button').click(function(event) {
         console.log('FSBS button clicked');
         getCloseRateScalePointFunction = getCloseRateScalePoint; // Set to default function
+        $('#scale-point-text').text('Flagship & Battleship'); // Update scale point text
         showConfirmation('Flagship & Battleship \nscale selected.');
         updatePowerRank();
         event.stopPropagation(); // Prevent the click from bubbling up to the document
@@ -445,6 +451,7 @@ $('#setting-icon').click(function(event) {
     $('#csrs-button').click(function(event) {
         console.log('CSRS button clicked');
         getCloseRateScalePointFunction = getCSRSCloseRateScalePoint; // Set to CSRS function
+        $('#scale-point-text').text('Cruiser & Regular'); // Update scale point text
         showConfirmation('Cruiser & Regular \nscale selected.');
         updatePowerRank();
         event.stopPropagation(); // Prevent the click from bubbling up to the document
@@ -453,11 +460,11 @@ $('#setting-icon').click(function(event) {
     $('#mall-button').click(function(event) {
         console.log('Mall button clicked');
         getCloseRateScalePointFunction = getMallCloseRateScalePoint; // Set to Mall function
+        $('#scale-point-text').text('Mall Location'); // Update scale point text
         showConfirmation('Mall Location \nscale selected.');
         updatePowerRank();
         event.stopPropagation(); // Prevent the click from bubbling up to the document
     });
-
 
     // Function to show confirmation pop-up
     function showConfirmation(message) {
