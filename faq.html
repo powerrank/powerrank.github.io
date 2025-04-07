@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Power Ranks FAQ</title>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #f9f9f9;
+      color: #333;
+      margin: 0;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #007BFF;
+      margin-bottom: 30px;
+    }
+
+    .accordion {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .accordion-item {
+        border-bottom: 1px solid #ccc;
+        margin-bottom: 15px;
+        }
+
+        .accordion-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        padding: 15px 20px;
+        background-color: #fff;
+        color: #007BFF;
+        font-weight: 600;
+        font-size: 16px;
+        transition: background-color 0.2s ease;
+        border-radius: 5px;
+        }
+
+        .accordion-header:hover {
+        background-color: #f0f8ff;
+        }
+
+        .accordion-arrow {
+        transition: transform 0.3s ease;
+        font-size: 18px;
+        }
+
+        .accordion-header.open .accordion-arrow {
+        transform: rotate(180deg);
+        }
+
+        .accordion-content {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.4s ease;
+        background-color: #fff;
+        padding: 0 20px;
+        border-radius: 0 0 5px 5px;
+        }
+
+        .accordion-content.open {
+        padding: 15px 20px;
+        max-height: 500px;
+        border-top: 1px solid #eee;
+        }
+
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 30px;
+      text-decoration: none;
+      color: #007BFF;
+      font-weight: bold;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    .metric-scale-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: Arial, sans-serif;
+        font-size: 11px;
+        margin-top: 15px;
+    }
+
+    .metric-scale-table th,
+    .metric-scale-table td {
+        width: 10%; /* or any consistent % */
+    }
+
+    .metric-scale-table th, .metric-scale-table td {
+        border: 1px solid #ccc;
+        padding: 10px;
+        text-align: center;
+    }
+
+    .metric-scale-table thead th {
+        background-color: #005b7f;
+        color: white;
+    }
+
+    .metric-scale-table .row-label {
+        background-color: #d6f0fa;
+        font-weight: bold;
+    }
+
+    .metric-scale-table tr:nth-child(even):not(.header) td {
+        background-color: #f5f5f5;
+    }
+
+    .metric-scale-table tr:nth-child(2) td {
+        background-color: #e5f6ec;
+        font-weight: bold;
+    }
+
+    .metric-scale-table .lowest td {
+        background-color: #ffe5e5;
+        color: #cc0000;
+        font-weight: bold;
+    }
+
+    .metric-weight-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: Arial, sans-serif;
+    margin-top: 1em;
+    border: 2px solid #005b7f;
+    font-size: 11px; /* Smaller font */
+}
+
+.metric-weight-table th,
+    .metric-weight-table td {
+        width: 10%; /* or any consistent % */
+    }
+
+.metric-weight-table th {
+    background-color: #005b7f;
+    color: white;
+    padding: 6px;
+    font-weight: bold;
+    border: 1px solid #ddd;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.metric-weight-table td {
+    padding: 5px;
+    text-align: center;
+    font-weight: bold;
+    border: 1px solid #959393;
+}
+
+.metric-weight-table tr:nth-child(2) {
+    background-color: white;
+}
+
+.metric-weight-table tr:nth-child(3) {
+    background-color: #d6d6d6;
+}
+
+.metric-weight-table td:first-child {
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
+.metric-weight-table tr:last-child td {
+    background-color: #ebebeb; /* or a darker shade if preferred */
+    color: #000; /* Optional: ensure readability */
+}
+
+/* Responsive scaling */
+@media (max-width: 768px) {
+    .metric-weight-table {
+        font-size: 11px;
+    }
+
+    .metric-weight-table th,
+    .metric-weight-table td {
+        padding: 4px;
+    }
+}
+
+  
+.responsive-table {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+body {
+  overflow-x: hidden;
+}
+</style>
+</head>
+<body>
+<h1>Frequently Asked Questions</h1>
+<div class="accordion">
+<div class="accordion-item">
+<div class="accordion-header">
+        ⭐ What is a Power Rank?
+          <span class="accordion-arrow">🡻</span>
+</div>
+<div class="accordion-content">
+          The Power Rank is your store's GPA — a score calculated using 10 weighted performance metrics.
+        </div>
+</div>
+<div class="accordion-item">
+<div class="accordion-header">
+            📊 What are the 10 metrics?
+          <span class="accordion-arrow">🡻</span>
+</div>
+<div class="accordion-content">
+            Metrics include Opps, PPVGA, Internet, Accessories, Protection, Rate Plan, Next Up, CSAT, CRU FN, and Prepaid.
+        </div>
+</div>
+<div class="accordion-item">
+<div class="accordion-header">
+            🔢 How does the metric scale points work?
+          <span class="accordion-arrow">🡻</span>
+</div>
+<div class="accordion-content">
+<p>Each metric is scored on a scale from 0 to 10 points, with 10 being the highest possible points per metric. These points are then weighted and calculated to determine a single Power Rank.</p>
+<div class="responsive-table"><table class="metric-scale-table">
+<thead>
+<tr>
+<th>Points Per Category</th>
+<th>Opps to Goal</th>
+<th>PPVGA to Goal</th>
+<th>Internet to Goal</th>
+<th>Access to Goal</th>
+<th>Protection</th>
+<th>Rate Plan</th>
+<th>Next Up</th>
+<th>CSAT</th>
+<th>CRU FN<br/><small>(Wild Card 1)</small></th>
+<th>Prepaid<br/><small>(Wild Card 2)</small></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="row-label">10</td>
+<td>100%</td><td>100%</td><td>100%</td><td>100%</td><td>80%</td><td>85%</td><td>80%</td><td>95%</td><td>100%</td><td>100%</td>
+</tr>
+<tr>
+<td class="row-label">9</td>
+<td>90%</td><td>90%</td><td>90%</td><td>90%</td><td>75%</td><td>80%</td><td>75%</td><td>90%</td><td>90%</td><td>90%</td>
+</tr>
+<tr>
+<td class="row-label">8</td>
+<td>80%</td><td>80%</td><td>80%</td><td>80%</td><td>70%</td><td>75%</td><td>70%</td><td>85%</td><td>80%</td><td>80%</td>
+</tr>
+<tr>
+<td class="row-label">7</td>
+<td>70%</td><td>70%</td><td>70%</td><td>70%</td><td>65%</td><td>70%</td><td>65%</td><td>80%</td><td>70%</td><td>70%</td>
+</tr>
+<tr>
+<td class="row-label">6</td>
+<td>60%</td><td>60%</td><td>60%</td><td>60%</td><td>60%</td><td>65%</td><td>60%</td><td>-</td><td>60%</td><td>60%</td>
+</tr>
+<tr>
+<td class="row-label">5</td>
+<td>50%</td><td>50%</td><td>-</td><td>50%</td><td>-</td><td>-</td><td>-</td><td>-</td><td>50%</td><td>50%</td>
+</tr>
+<tr class="lowest">
+<td class="row-label arrow">0</td>
+<td>&lt; 50%</td><td>&lt; 50%</td><td>&lt; 60%</td><td>&lt; 50%</td><td>&lt; 60%</td><td>&lt; 65%</td><td>&lt; 60%</td><td>&lt; 80%</td><td>&lt; 50%</td><td>&lt; 50%</td>
+</tr>
+</tbody>
+</table></div>
+<p>NOTE: Store must have a mininum 4% HTP Attainment; if HTP qualifier is not attained, Protection score will be reduced by 50%</p>
+</div>
+</div>
+<div class="accordion-item">
+<div class="accordion-header">
+            ⚖️ How are the metrics weighted?
+          <span class="accordion-arrow">🡻</span>
+</div>
+<div class="accordion-content">
+<p>Each metric is assigned a percentage weight based on its impact. These weights differ depending on whether the store is In Footprint (IF) or Out of Footprint (OOF):</p>
+<div class="responsive-table"><table class="metric-weight-table">
+<thead>
+<tr>
+<th>Weights</th>
+<th>Opps<br/>to Goal</th>
+<th>PPVGA<br/>to Goal</th>
+<th>Internet<br/>to Goal</th>
+<th>Access<br/>to Goal</th>
+<th>Protection</th>
+<th>Rate Plan</th>
+<th>Next Up</th>
+<th>CSAT</th>
+<th>CRU FN<br/>(Wild Card 1)</th>
+<th>Prepaid<br/>(Wild Card 2)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Internet Eligible Stores</td>
+<td>20%</td>
+<td>20%</td>
+<td>20%</td>
+<td>10%</td>
+<td>5%</td>
+<td>5%</td>
+<td>5%</td>
+<td>5%</td>
+<td>5%</td>
+<td>5%</td>
+</tr>
+<tr>
+<td>Non Internet Stores</td>
+<td>25%</td>
+<td>25%</td>
+<td>-</td>
+<td>20%</td>
+<td>5%</td>
+<td>5%</td>
+<td>5%</td>
+<td>5%</td>
+<td>5%</td>
+<td>5%</td>
+</tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div class="accordion-item">
+<div class="accordion-header">
+        💪 Why are some metrics weighted more than others?
+          <span class="accordion-arrow">🡻</span>
+</div>
+<div class="accordion-content">
+<p>Metrics like Opps, PPVGA, and Internet are more directly tied to business growth. They are weighted higher to reflect their importance.</p>
+</div>
+</div>
+<div class="accordion-item">
+<div class="accordion-header">
+         ⚙️ What's the difference between IF and OOF?
+          <span class="accordion-arrow">🡻</span>
+</div>
+<div class="accordion-content">
+            In-Footprint (IF) refers to stores with an internet goal. Out-of-Footprint (OOF) refers to locations that do not have an internet goal.
+        </div>
+</div>
+<div class="accordion-item">
+<div class="accordion-header">
+        🪫 What does it mean when I score low in a high-weight metric?
+          <span class="accordion-arrow">🡻</span>
+</div>
+<div class="accordion-content">
+<p>It means your Power Rank could be significantly affected. Prioritizing improvements in OPPS, PPVGA or Internet can quickly boost your overall score.</p>
+</div>
+</div>
+<div class="accordion-item">
+<div class="accordion-header">
+        ❤‍🩹 What is a "Healthy" Power Rank Score
+          <span class="accordion-arrow">🡻</span>
+</div>
+<div class="accordion-content">
+            While every store is different, a score above a Power Rank 6 will prevent you from getting a <strong>Health Check</strong>. A Power Rank 7 is decent and an 8+ is considered you are running a healthy business!
+        </div>
+</div>
+<div class="accordion-item">
+<div class="accordion-header">
+            ⁉️ What if I do not have data for a metric?
+          <span class="accordion-arrow">🡻</span>
+</div>
+<div class="accordion-content">
+            You can leave that field blank or enter "0." The calculator adjusts accordingly to avoid skewing your score.        </div>
+</div>
+<div class="accordion-item">
+<div class="accordion-header">
+        🤔 What is the difference between “Points” and “Power Rank Contribution”?
+          <span class="accordion-arrow">🡻</span>
+</div>
+<div class="accordion-content">
+<p>"Points" show how well you’re doing in that metric (0–10). The contribution is how much those points impact your final score based on the weight.</p>
+</div>
+</div>
+<div class="accordion-item">
+<div class="accordion-header">
+            💾 Will my inputs be saved?
+          <span class="accordion-arrow">🡻</span>
+</div>
+<div class="accordion-content">
+            Yes! Your entries are saved locally in your browser so you can return without losing progress.
+        </div>
+</div>
+</div>
+<hr style="margin: 30px 0; border: none; border-top: 1px solid #ccc;"/>
+<div style="text-align: center; margin-top: 20px;">
+<h3 style="color: #007BFF; margin-bottom: 10px;">Still have questions?</h3>
+<p style="font-size: 16px; color: #333;">
+      We’re here to help! Reach out through the portal or contact a member of the <strong>Revenue Management Team</strong>.
+    </p>
+</div>
+<a class="back-link" href="index.html">🡸 Back to Calculator</a>
+<script>
+        const headers = document.querySelectorAll('.accordion-header');
+        headers.forEach(header => {
+        header.addEventListener('click', () => {
+            header.classList.toggle('open');
+            const content = header.nextElementSibling;
+            content.classList.toggle('open');
+        });
+        });
+  </script>
+</body>
+</html>

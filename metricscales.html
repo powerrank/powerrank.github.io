@@ -1,0 +1,240 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Power Ranks – Metric Scales</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+            color: #007BFF;
+        }
+
+        .tables-wrapper {
+            display: flex;
+            gap: 40px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .styled-table, .point-scale-table {
+            border-collapse: collapse;
+            width: 350px;
+            max-width: 100%;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        .styled-table th, .styled-table td,
+        .point-scale-table th, .point-scale-table td {
+            border: 1px solid #ddd;
+            padding: 10px 12px;
+            text-align: center;
+        }
+
+        .styled-table th,
+        .point-scale-table th {
+            background-color: #007BFF;
+            color: white;
+        }
+
+        .styled-table tr:nth-child(even) td,
+        .point-scale-table tr:nth-child(even) td {
+            background-color: #f9f9f9;
+        }
+
+        .point-scale-table th:first-child,
+        .point-scale-table td:first-child {
+            width: 100px;
+            max-width: 100px;
+            word-break: break-word;
+        }
+
+        .section-label {
+            text-align: center;
+            font-size: 20px;
+            margin-bottom: 10px;
+            color: #444;
+        }
+
+        .responsive-table {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        @media (max-width: 600px) {
+            .styled-table th, .styled-table td,
+            .point-scale-table th, .point-scale-table td {
+                font-size: 13px;
+                padding: 6px 8px;
+            }
+        }
+
+        .centered-button {
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .scale-button {
+            display: inline-block;
+            margin-top: 12px;
+            background-color: #007BFF;
+            color: white;
+            padding: 10px 16px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        .scale-button:hover {
+            background-color: #0056b3;
+            transform: scale(1.05);
+        }
+
+        .back-button {
+            display: inline-block;
+            padding: 12px 20px;
+            background-color: #007BFF;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 16px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+            transition: background-color 0.3s ease;
+        }
+
+        .back-button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Power Ranks Scales Overview</h1>
+    
+
+    <div class="tables-wrapper">
+        <!-- Metric Weight Scale Table -->
+        <div>
+            <div class="section-label">⚖️ Metric Weight Scale</div>
+            <div class="responsive-table">
+            <table class="styled-table metric-weight-table">
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Internet Eligible Stores</th>
+                        <th>Non-Internet Stores</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>Opps</td><td>20%</td><td>25%</td></tr>
+                    <tr><td>PPVGA</td><td>20%</td><td>25%</td></tr>
+                    <tr><td>Internet</td><td>20%</td><td>—</td></tr>
+                    <tr><td>Accessories</td><td>10%</td><td>20%</td></tr>
+                    <tr><td>Protection</td><td>5%</td><td>5%</td></tr>
+                    <tr><td>Rate Plan</td><td>5%</td><td>5%</td></tr>
+                    <tr><td>Next Up</td><td>5%</td><td>5%</td></tr>
+                    <tr><td>CSAT</td><td>5%</td><td>5%</td></tr>
+                    <tr><td>CRU FN</td><td>5%</td><td>5%</td></tr>
+                    <tr><td>Prepaid</td><td>5%</td><td>5%</td></tr>
+                </tbody>
+            </table>
+            <div class="centered-button">
+                <a href="weightscale.png" target="_blank" class="scale-button">
+                  📷 View Weight Scale Example
+                </a>
+              </div>
+        </div>
+
+
+        </div>
+
+
+        <!-- Point Scale Table -->
+        <div>
+            <div class="section-label">📊 Point Scale by Metric</div>
+            <div class="responsive-table">
+                <table class="styled-table metric-weight-table">
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>% to Goal</th>
+                        <th>Points</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Group 1 -->
+                    <tr><td rowspan="7">Opps <br> PPVGA <br> Accessories <br> CRU FN <br> Prepaid</td><td>0–49%</td><td>0</td></tr>
+                    <tr><td>50–59%</td><td>5</td></tr>
+                    <tr><td>60–69%</td><td>6</td></tr>
+                    <tr><td>70–79%</td><td>7</td></tr>
+                    <tr><td>80–89%</td><td>8</td></tr>
+                    <tr><td>90–99%</td><td>9</td></tr>
+                    <tr><td>100%+</td><td>10</td></tr>
+        
+                    <!-- Group 2 -->
+                    <tr><td rowspan="6">Internet</td><td>0–59%</td><td>0</td></tr>
+                    <tr><td>60–69%</td><td>6</td></tr>
+                    <tr><td>70–79%</td><td>7</td></tr>
+                    <tr><td>80–89%</td><td>8</td></tr>
+                    <tr><td>90–99%</td><td>9</td></tr>
+                    <tr><td>100%+</td><td>10</td></tr>
+        
+                    <!-- Group 3 -->
+                    <tr><td rowspan="6">Protection <br> Next Up</td><td>0–59%</td><td>0</td></tr>
+                    <tr><td>60–64%</td><td>6</td></tr>
+                    <tr><td>65–69%</td><td>7</td></tr>
+                    <tr><td>70–74%</td><td>8</td></tr>
+                    <tr><td>75–79%</td><td>9</td></tr>
+                    <tr><td>80%+</td><td>10</td></tr>
+        
+                    <!-- Group 4 -->
+                    <tr><td rowspan="6">Rate Plan</td><td>0–64%</td><td>0</td></tr>
+                    <tr><td>65–69%</td><td>6</td></tr>
+                    <tr><td>70–74%</td><td>7</td></tr>
+                    <tr><td>75–79%</td><td>8</td></tr>
+                    <tr><td>80–84%</td><td>9</td></tr>
+                    <tr><td>85%+</td><td>10</td></tr>
+        
+                    <!-- Group 5 -->
+                    <tr><td rowspan="5">CSAT</td><td>0–79%</td><td>0</td></tr>
+                    <tr><td>80–84%</td><td>7</td></tr>
+                    <tr><td>85–89%</td><td>8</td></tr>
+                    <tr><td>90–94%</td><td>9</td></tr>
+                    <tr><td>95%+</td><td>10</td></tr>
+                </tbody>
+            </table>
+            <div class="centered-button">
+                <a href="pointscale.png" target="_blank" class="scale-button">
+                  📷 View Point Scale Example
+                </a>
+              </div>
+        </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 40px;">
+        <a href="index.html" class="back-button">← Back to Calculator</a>
+    </div>
+
+
+            </div>
+
+        </div>
+    </div>
+
+</body>
+</html>
