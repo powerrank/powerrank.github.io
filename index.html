@@ -3,41 +3,1072 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <meta name="description" content="Power Ranks Calculator is a sales performance tool that helps store leaders calculate their Power Rank by evaluating key metrics. Easily track sales performance, identify improvement areas, and optimize store success with real-time insights.">
-    <meta name="keywords" content="informational, educational, knowledge, insights">
-    <title>Power Rank Calculator - Maintenance</title>
+    <meta name="description" content="Power Ranks Calculator is a sales performance tool that helps store leaders calculate their Power Rank by evaluating key metrics.">
+    <title>Power Rank Calculator</title>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 5% 2%;
-            background-color: #f9f9f9;
+            padding: 5% 2%; /* Responsive padding */
+            background-color: #f9f9f9; /* Light background for contrast */
+            padding-top: 120px;
+            padding-bottom: 150px;
             display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh; /* Full height for centering */
+            flex-direction: column; /* Stack elements vertically */
+            justify-content: center; /* Center horizontally */
+            align-items: center; /* Center align */
+            height: auto; /* Remove fixed height */
+            position: relative;
+            overflow-x: hidden; /* Prevent horizontal scrolling */
+            touch-action: manipulation; /* Prevents zooming on touch */
+        }
+        h1 {
+            text-align: center; /* Align title to the center */
+            color: #333;
+            margin-bottom: 10px; /* Reduced margin */
+        }
+        h3 {
+            text-align: center; /* Align title to the center */
+            color: #333;
+            margin-bottom: 1px; /* Reduced margin */
+        }
+        .input-container {
+            width: 50%; /* Responsive width */
+            max-width: 200px; /* Limit max width for larger screens */
+            margin: 0 auto; /* Center container */
+        }
+        .input-field {
+            appearance: none; /* Remove default styling */
+            -webkit-appearance: none; /* Remove default styling for Safari */
+            -moz-appearance: none; /* Remove default styling for Firefox */
+            background-color: white;
+            cursor: pointer; /* Change cursor to pointer */
+            width: 40%; /* Full width for responsive design */
+            margin: 0;
+            min-height: 20px; /* Ensure touch-friendly */
+            padding: 10px; /* Padding for input fields */
+            border: 2px solid #ccc;
+            border-radius: 5px; /* Slightly smaller border radius */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: border-color 0.3s, box-shadow 0.3s;
+            font-size: 16px; /* Set font size to 16px or larger */
+            touch-action: manipulation; /* Prevents zooming on touch */
+        }
+        .input-field:focus {
+            border-color: #007BFF; /* Change border color on focus */
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+            outline: none; /* Remove default outline */
+        }   
+        .input-wrapper {
+            display: flex; /* Use flexbox for alignment */
+            align-items: center; /* Align items vertically centered */
+            margin-bottom: 10px; /* Space between input fields */
+        }
+
+        .htp-label {
+            font-size: 13px;
+            color: #555;
+        }
+
+        .small-input {
+            width: 45px;
+            padding: 8px;
+        }
+
+        .htp-input {
+            width: 55px;
+            padding: 6px 8px;
+            font-size: 14px;
+        }
+
+        .reduced-points {
+            color: #c0392b !important; /* red tone or use gray if preferred */
+            font-weight: bold;
+        }
+
+        .htp-warning {
+            margin-left: 8px;
+            font-size: 12px;
+            color: #e74c3c;
+            font-style: italic;
+        }
+
+        .reduction-note {
+            margin-left: 6px;
+            font-size: 12px;
+            color: #e74c3c;
+            font-style: italic;
+        }
+
+        label {
+            margin-bottom: 5px;
+            display: block;
+            color: #555;
+        }
+        
+        .points {
+            margin-left: 10px; /* Space between input and points */
+            width: 100px;
+            font-weight: bold;
+            color: #007BFF; /* Color for points display */
+        }
+
+        .contribution {
+            margin-left: 5px;
+            font-weight: bold;
+            color: #28a745; /* Green color for contribution */
+        }
+
+        .percentage {
+            margin-left: 5px; /* Space between input and percentage symbol */
+            font-weight: bold; /* Bold style for emphasis */
+            color: #333; /* Same color as the title */
+        }
+        .recommendation {
+            margin-left: 10px; /* Space between input and recommendation */
+            font-weight: bold;
+            color: #FF5733; /* Color for recommendations */
+        }
+
+        .tooltip {
+            position: absolute;
+            background-color: #333;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: 14px;
+            z-index: 1000;
+            opacity: 0.95;
+            pointer-events: none;
+            max-width: 280px;
+            line-height: 1.4;
             text-align: center;
         }
-        .maintenance-message {
-            background-color: #fff;
-            padding: 20px;
+
+        .floating-container {
+            position: fixed; /* Keep it fixed */
+            top: 0; /* Align to bottom */
+            left: 0;
+            right: 0; /* Full width */
+            background-color: #007BFF; /* Background color */
+            color: white; /* Text color */
+            padding: 10px; /* Adjust padding for mobile */
+            text-align: center; /* Center the text */
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2); /* Shadow for depth */
+            z-index: 1; /* Lower z-index than hamburger menu */
+        }
+
+        .result {
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 10px;
+            color: #333;
+        }
+ 
+ 
+                /* Hamburger Menu Container Styles */
+        .hamburger-container {
+            position: fixed; /* Keep it fixed */
+            top: 20px; /* Position it at the top */
+            left: 20px; /* Position it at the left */
+            background-color: rgba(255, 255, 255, 0.8); /* White background with opacity */
+            border-radius: 10px; /* Rounded corners */
+            padding: 10px; /* Padding around the icon */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Shadow for depth */
+            z-index: 2; /* Higher z-index to be on top of the floating container */
+        }
+        
+        .hamburger-menu {
+            cursor: pointer;
+        }
+        
+        .hamburger-menu .bar {
+            width: 30px;
+            height: 3px;
+            background-color: #333;
+            margin: 5px 0;
+            transition: 0.4s;
+        }
+        
+        .hamburger-menu .bar:nth-child(2) {
+            width: 20px; /* Second bar slightly narrower */
+        }
+        
+        /* Media Queries for Smaller Devices */
+        @media (max-width: 600px) {
+            .input-field {
+                font-size: 16px; /* Smaller font for mobile */
+            }
+            h1 {
+                font-size: 24px; /* Smaller title */
+            }
+            .floating-container {
+                padding: 5px; /* Adjust padding for mobile */
+            }
+            .toast {
+                max-width: 400px; /* Wider on tablets and desktops */
+            }
+        }
+ 
+        .slider-menu {
+            position: fixed;
+            top: 0;
+            left: -250px; /* Start hidden off-screen */
+            width: 150px; /* Width of the sliding menu */
+            height: 100%; /* Full height */
+            background-color: #007BFF; /* Background color */
+            color: white; /* Text color */
+            transition: left 0.3s ease; /* Smooth transition for sliding effect */
+            z-index: 2; /* Ensure it appears above other content */
+            padding: 20px; /* Padding inside the menu */
+        }
+
+        .slider-menu-title {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 20px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .slider-menu h2 h3 {
+            margin-top: 0; /* Remove margin for the title */
+        }
+        
+        .slider-menu ul {
+            list-style-type: none; /* Remove bullet points */
+            margin-top: 40%;
+            padding: 0; /* Remove padding */
+        }
+        
+        .slider-menu li {
+            margin: 20px 0; /* Space between menu items */
+        }
+        
+        .slider-menu a {
+            color: white; /* Link color */
+            text-decoration: none; /* Remove underline */
+            font-size: 18px; /* Font size */
+        }
+        
+        /* Active state for links */
+        .slider-menu a:hover {
+            text-decoration: underline; /* Underline on hover */
+        }
+        
+        .signature {
+            position: absolute; /* Position it absolutely within the slider */
+            bottom: 50px; /* Distance from the bottom */
+            left: 50%; /* Center horizontally */
+            transform: translateX(-50%); /* Adjust to center the text */
+            font-size: 14px; /* Font size */
+            color: #ffffff; /* Text color */
+            text-align: center; /* Center align text */
+        }
+        
+
+        .floating-button-container {
+            position: fixed; /* Keep it fixed */
+            top: 20px; /* Position it at the top */
+            right: 20px; /* Position it at the right */
+            background-color: rgba(255, 255, 255, 0.8); /* White background with opacity */
+            border-radius: 10px; /* Rounded corners */
+            padding: 10px; /* Padding around the icon */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Shadow for depth */
+            z-index: 2; /* Higher z-index to be on top of the floating container */
+        }
+
+        .setting-icon {
+            width: 30px; /* Adjust size as needed */
+            height: 30px; /* Adjust size as needed */
+            cursor: pointer; /* Change cursor to pointer */
+            display: block; /* Ensure it behaves like a block element */
+            margin: 0 auto; /* Center the icon */
+        }
+        .floating-button {
+            cursor: pointer;
+        }
+
+        .floating-button .bar {
+            width: 30px;
+            height: 3px;
+            background-color: #333;
+            margin: 5px 0;
+            transition: 0.4s;
+        }
+
+        .slider-menu-right {
+            position: fixed;
+            top: 0;
+            right: -250px; /* Start hidden off-screen */
+            width: 200px; /* Width of the sliding menu */
+            height: 100%; /* Full height */
+            background-color: #007BFF; /* Background color */
+            color: white; /* Text color */
+            transition: right 0.3s ease; /* Smooth transition for sliding effect */
+            z-index: 2; /* Ensure it appears above other content */
+            padding: 20px; /* Padding inside the menu */
+        }
+
+        .slider-menu-right h2 {
+            margin-top: 0; /* Remove margin for the title */
+        }
+
+        .slider-menu-right button {
+            background-color: #FF5733; /* Button color */
+            color: white; /* Text color */
+            border: none; /* Remove border */
+            padding: 10px; /* Padding for button */
+            margin-bottom: 10px;
+            border-radius: 5px; /* Rounded corners */
+            cursor: pointer; /* Pointer cursor */
+            width: 100%; /* Full width */
+        }
+
+        .slider-menu-right button:hover {
+            background-color: #FF3F3F; /* Darker color on hover */
+        }
+
+        .confirmation-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #000c19;
+            color: white;
+            padding: 10px 20px;
             border-radius: 5px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
         }
-        img {
-            max-width: 100%; /* Responsive image */
-            height: auto; /* Maintain aspect ratio */
-            margin-top: 20px; /* Space between text and image */
+
+        .popup-notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #2c4056;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            z-index: 1000;
+            display: block; /* Initially hidden */
+            opacity: 0; /* Start with no opacity */
+            transition: opacity 2s ease; /* Fade effect */
         }
+
+        .hidden {
+            display: none;
+        }
+
+ 
     </style>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<style>
+    body {
+        font-family: 'Poppins', sans-serif;
+    }
+    .input-field:focus {
+        border-color: #0a84ff;
+        box-shadow: 0 0 8px rgba(10, 132, 255, 0.6);
+        transform: scale(1.02);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .floating-container {
+        transition: background-color 0.5s ease;
+    }
+    .input-wrapper {
+        transition: background-color 0.3s ease;
+        border-radius: 5px;
+    }
+    .input-wrapper:hover {
+        background-color: #eef6ff;
+    }
+    #hamburger-menu, #setting-icon {
+        transition: transform 0.2s ease;
+    }
+    #hamburger-menu:hover, #setting-icon:hover {
+        transform: scale(1.1);
+    }
+</style>
+
+
+<style>
+
+.toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: 260px;
+    max-width: 90vw;
+    padding: 16px 20px;
+    background-color: #2c4056;
+    color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    font-size: 16px;
+    text-align: left;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none; 
+    transition: opacity 0.5s ease;
+}
+
+.toast.show {
+    opacity: 1;
+    pointer-events: auto; 
+}
+.toast-actions {
+    margin-top: 12px;
+    display: flex;
+    justify-content: center;
+}
+
+.toast ul {
+    margin: 10px 0;
+    padding-left: 20px;
+}
+
+.toast ul li {
+    margin-bottom: 5px;
+}
+
+.toast button {
+    background-color: #FF5733;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    
+}
+
+.toast button:hover {
+    background-color: #FF3F3F;
+}
+
+
+</style>
+
 </head>
 <body>
-    <div class="maintenance-message">
-        <h1>Oops! We're Under Maintenance!</h1>
-        <p>The Power Rank Calculator is currently getting a makeover. We promise it will be worth the wait!</p>
-        <p>In the meantime, keep driving your business like you own it!</p>
-        <img src="https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExazUzYjNnYXBuMTQ0dmljY3Q0cDBnaWNnZTIxcHk2ZXZkanBxcXczZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/JIX9t2j0ZTN9S/giphy.gif" alt="Prime Working Overnight">
-        <p>Thank you for your support,<br>Revenue Management Team</p>
+    <div class="hamburger-container">
+        <div class="hamburger-menu" id="hamburger-menu">
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+        </div>
     </div>
+
+    <div class="floating-button-container">
+        <img src="setting.png" alt="Settings" id="setting-icon" class="setting-icon">
+    </div>
+
+    <div class="floating-container">
+        <h2 id="power-rank">Power Rank: 0</h2>
+    </div>
+ 
+    <h3 id="selected-scale-point">Point Scale: <span id="scale-point-text" style="color: #007BFF;">IN FOOT PRINT</span></h3>
+    <h1>Power Rank Calculator</h1>
+    <div class="input-container">
+        <label for="opps">Opps to Goal:</label>
+        <div class="input-wrapper">
+            <input type="tel" id="opps" class="input-field" oninput="updatePowerRank()" min="1" max="100">
+            <span class="percentage">%</span>
+            <span id="opps-points" class="points">0 Points</span>
+            <span id="opps-recommendation" class="recommendation"></span>
+        </div>
+ 
+        <label for="ppvga">PPVGA to Goal:</label>
+        <div class="input-wrapper">
+            <input type="tel" id="ppvga" class="input-field" oninput="updatePowerRank()" min="1" max="100">
+            <span class="percentage">%</span>
+            <span id="ppvga-points" class="points">0 Points</span>
+            <span id="ppvga-recommendation" class="recommendation"></span>
+        </div>
+ 
+        <div id="internet-container">
+            <label for="internet-goal">Internet to Goal:</label>
+            <div class="input-wrapper">
+                <input type="tel" id="internet" class="input-field" oninput="updatePowerRank()" min="1" max="100">
+                <span class="percentage">%</span>
+                <span id="internet-points" class="points">0 Points</span>
+                <span id="internet-recommendation" class="recommendation"></span>
+            </div>
+        </div>
+
+        <label for="accessories">Accessories to Goal:</label>
+        <div class="input-wrapper">
+            <input type="tel" id="accessories" class="input-field" oninput="updatePowerRank()" min="1" max="100">
+            <span class="percentage">%</span>
+            <span id="accessories-points" class="points">0 Points</span>
+            <span id="accessories-recommendation" class="recommendation"></span>
+        </div>        
+ 
+        
+        <label for="protection">Protection:</label>
+        <div class="input-wrapper">
+                <input type="tel" id="protection" class="input-field" oninput="updatePowerRank()" min="0" max="100">
+                <span class="percentage">%</span>
+                <span id="protection-points" class="points">0 Points</span>
+                <span id="protection-recommendation" class="protection"></span>
+        </div>
+
+        <label for="htp" class="htp-label">HTP:</label>
+        <div class="htp-sub">
+            <input type="tel" id="htp" class="input-field small-input" oninput="updatePowerRank()" pattern="[0-9]*" inputmode="decimal" />
+            <span class="percentage">%</span>
+            <span id="htp-warning" class="htp-warning hidden">Low HTP - Protection Score Reduced</span>
+        </div>
+
+        
+        <label for="rate-plan">Rate Plan:</label>
+        <div class="input-wrapper">
+            <input type="tel" id="rate-plan" class="input-field" oninput="updatePowerRank()" min="1" max="100">
+            <span class="percentage">%</span>
+            <span id="rate-plan-points" class="points">0 Points</span>
+            <span id="rate-plan-recommendation" class="recommendation"></span>
+        </div>
+ 
+        <label for="next-up">Next Up:</label>
+        <div class="input-wrapper">
+            <input type="tel" id="next-up" class="input-field" oninput="updatePowerRank()" min="1" max="100">
+            <span class="percentage">%</span>
+            <span id="next-up-points" class="points">0 Points</span>
+            <span id="next-up-recommendation" class="recommendation"></span>
+        </div>
+
+        <label for="csat">CSAT:</label>
+        <div class="input-wrapper">
+            <input type="tel" id="csat" class="input-field" oninput="updatePowerRank()" min="1" max="100">
+            <span class="percentage">%</span>
+            <span id="csat-points" class="points">0 Points</span>
+            <span id="csat-recommendation" class="recommendation"></span>
+        </div>
+
+        <label for="wildcard-1">CRU FN:</label>
+        <div class="input-wrapper">
+            <input type="tel" id="wildcard-1" class="input-field" oninput="updatePowerRank()" min="1" max="100">
+            <span class="percentage">%</span>
+            <span id="wildcard-1-points" class="points">0 Points</span>
+            <span id="wildcard-1-recommendation" class="recommendation"></span>
+        </div>
+
+        <label for="wildcard-2">Prepaid:</label>
+        <div class="input-wrapper">
+            <input type="tel" id="wildcard-2" class="input-field" oninput="updatePowerRank()" min="1" max="100">
+            <span class="percentage">%</span>
+            <span id="wildcard-2-points" class="points">0 Points</span>
+            <span id="wildcard-2-recommendation" class="recommendation"></span>
+        </div>
+        
+        <div class="tooltip" id="tooltip" style="display: none;"></div>
+    </div>
+
+
+ 
+    <!-- Sliding Menu -->
+    <div class="slider-menu" id="slider-menu">
+        <h2 class="slider-menu-title">Power Ranks</h2>
+        <ul>
+            <li><a href="">Calculator</a></li>
+            <li><a href="metricscales.html">Point & Weight Scale Metrics</a></li>
+            <li><a href="faq.html">FAQ</a></li>
+            <!--<li><a href="contactinfo.html">Contact Info</a></li>
+            <li><a href="currentevent.html">Current Event</a></li>-->
+        </ul>
+        <div class="signature">
+            Built by <br> The Revenue Management Team
+        </div>
+    </div>
+
+    <div class="slider-menu-right" id="slider-menu-right">
+        <h2 style="text-align: center;">Calculator Settings</h2>
+        <h4 style="text-align: center;">Pick Store Footprint</h4>
+        <button id="if-button">IF</button>
+        <button id="oof-button">OOF</button>
+        <h4 style="text-align: center;">Additional Options</h4>
+        <button id="toggle-contribution">Show Contribution</button>
+        <button id="reset-button">Reset Calculator</button>
+    </div>
+
+    <div id="toast" class="toast">
+        <div id="toast-message"></div>
+        <div class="toast-actions">
+            <button id="toast-close">Dismiss</button>
+        </div>
+    </div>
+
+    <script>
+        let isInFootprint = true;
+        let showContributions = false;
+
+        const CURRENT_VERSION = '2.0';
+
+
+        function markReturningUser() {
+            localStorage.setItem('hasVisitedBefore', 'true');
+        }
+
+        function saveSettings() {
+            const settings = {
+                isInFootprint: isInFootprint,
+                showContributions: showContributions
+            };
+            localStorage.setItem('powerRankSettings', JSON.stringify(settings));
+        }
+
+        function saveInputs() {
+            let inputValues = {};
+            $('.input-field').each(function() {
+                inputValues[$(this).attr('id')] = $(this).val();
+            });
+            localStorage.setItem('powerRankInputs', JSON.stringify(inputValues));
+        }
+
+        function loadSettings() {
+            const saved = localStorage.getItem('powerRankSettings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                isInFootprint = settings.isInFootprint ?? true;
+                showContributions = settings.showContributions ?? false;
+
+                // Apply footprint display
+                if (isInFootprint) {
+                    $('#scale-point-text').text('IN FOOT-PRINT');
+                    $('#internet-container').show();
+                } else {
+                    $('#scale-point-text').text('OUT OF FOOTPRINT');
+                    $('#internet-container').hide();
+                }
+
+                // Apply contribution display
+                if (showContributions) {
+                    $('.contribution').removeClass('hidden');
+                    $('#toggle-contribution').text('Hide Contribution');
+                } else {
+                    $('.contribution').addClass('hidden');
+                    $('#toggle-contribution').text('Show Contribution');
+                }
+            }
+        }
+
+        function loadInputs() {
+            let saved = localStorage.getItem('powerRankInputs');
+            if (saved) {
+                let inputValues = JSON.parse(saved);
+                Object.keys(inputValues).forEach(id => {
+                    $(`#${id}`).val(inputValues[id]);
+                });
+            }
+        }
+
+        function resetCalculator() {
+            $('.input-field').val('');
+            localStorage.removeItem('powerRankInputs');
+
+            // Reset contribution visibility
+            showContributions = false;
+            $('.contribution').addClass('hidden');
+            $('#toggle-contribution').text('Show Contribution');
+
+            saveSettings(); // Ensure settings are also reset
+            updatePowerRank();
+        }
+
+        function centeredText(text) {
+            return `<div style="text-align: center;">${text}</div>`;
+        }
+
+        function showToast(message, persistent = false) {
+            const toast = $('#toast');
+            $('#toast-message').html(message);
+            toast.addClass('show');
+
+            if (persistent) {
+                $('#toast-close').show();
+            } else {
+                $('#toast-close').hide();
+                clearTimeout(toastTimer);
+                toastTimer = setTimeout(() => {
+                    toast.removeClass('show');
+                }, 2000);
+            }
+        }
+
+        let toastTimer;
+
+        $(document).on('click', '#toast-close', function() {
+            $('#toast').removeClass('show');
+            clearTimeout(toastTimer);
+        });
+
+
+$(document).ready(function() {
+            
+    loadSettings();
+
+    // Click event for the hamburger menu
+    $('#hamburger-menu').click(function(event) {
+        const sliderMenu = $('#slider-menu');
+        if (sliderMenu.css('left') === '0px') {
+            sliderMenu.css('left', '-250px'); // Hide the menu
+        } else {
+            sliderMenu.css('left', '0'); // Show the menu
+        }
+        event.stopPropagation(); // Prevent the click from bubbling up to the document
+    });
+
+    // Click event for the settings icon
+    $('#setting-icon').click(function(event) {
+        const sliderMenuRight = $('#slider-menu-right');
+        if (sliderMenuRight.css('right') === '0px') {
+            sliderMenuRight.css('right', '-250px'); // Hide the menu
+        } else {
+            sliderMenuRight.css('right', '0'); // Show the menu
+        }
+        event.stopPropagation(); // Prevent the click from bubbling up to the document
+    });
+
+    // Click event for the document to hide the slider menu when clicking outside
+    $(document).click(function(event) {
+        const sliderMenu = $('#slider-menu');
+        const sliderMenuRight = $('#slider-menu-right');
+
+        // Hide the left slider menu if it's open
+        if (sliderMenu.css('left') === '0px') {
+            sliderMenu.css('left', '-250px'); // Hide the menu
+        }
+
+        // Hide the right slider menu if it's open
+        if (sliderMenuRight.css('right') === '0px') {
+            sliderMenuRight.css('right', '-250px'); // Hide the menu
+        }
+    });
+
+
+
+                $('#toggle-contribution').click(function () {
+                showContributions = !showContributions;
+                if (showContributions) {
+                    $('.contribution').removeClass('hidden');
+                    $(this).text('Hide Contribution');
+                    showToast('Metric contribution points are now visible.');
+                } else {
+                    $('.contribution').addClass('hidden');
+                    $(this).text('Show Contribution');
+                    showToast('Metric contribution points are now hidden.');
+                }
+                saveSettings(); // ✅ Make sure to save after toggling
+            });
+
+            $('#if-button').click(function(event) {
+                isInFootprint = true;
+                $('#scale-point-text').text('IN FOOT-PRINT');
+                $('#internet-container').show();
+                showToast(centeredText('In Footprint scale selected.'));
+                updatePowerRank();
+                event.stopPropagation();
+                saveSettings(); // ✅ Make sure to save after toggling
+            });
+
+            $('#oof-button').click(function(event) {
+                isInFootprint = false;
+                $('#scale-point-text').text('OUT OF FOOTPRINT');
+                $('#internet-container').hide();
+                showToast(centeredText('Out of Footprint scale selected.'));
+                updatePowerRank();
+                event.stopPropagation();
+                saveSettings(); // ✅ Make sure to save after toggling
+            });
+
+            $('.input-field').on('input', function() {
+                updatePowerRank();
+                saveInputs();
+                saveSettings(); // ✅ Ensures current state is preserved even if the tab closes
+            });
+            loadInputs();
+
+            const isReturningUser = localStorage.getItem('hasVisitedBefore') === 'true';
+
+            if (!isReturningUser) {
+                showToast(
+                    `<h2 style="text-align: center; margin-bottom: 10px;">Welcome to the Power Rank Calculator!</h2>
+                    <p style="text-align: center;">What's new on this update?</p>
+                    <ul style="padding-left: 50px; margin: 10px 0; text-align: left;">
+                        <li>⭐ A total of 10 Metrics evaluated</li>
+                        <li>🚀 Weighted Metrics & Footprint Options (Check out Settings Slider)</li>
+                        <li>📊 New Point Scale & FAQ Pages <br>(Check out the Menu Slider)</li>
+                        <li>✅ Your progress and settings are saved!</li>
+                        <li>👀 More updates coming soon...</li>
+                    </ul>
+                    <p style="text-align: center;"><strong>Get started by entering your metrics!</strong></p>`,
+                    true
+                );
+                markReturningUser();
+            } else {
+                showToast(
+                    `<h2 style="text-align: center;">Welcome back! 👋</h2>
+                    <p>Your previous inputs and settings have been loaded</p>`,
+                    true
+                );
+            }
+
+            updatePowerRank();
+
+            $('#reset-button').click(function(event) {
+                resetCalculator();
+                showToast(centeredText('Calculator has been reset.'));
+                event.stopPropagation();
+            });
+        });
+
+        const tooltips = {
+            'opps': '50% minimum to receive points',
+            'ppvga': '50% minimum to receive points',
+            'internet': '60% minimum to receive points',
+            'accessories': '50% minimum to receive points',
+            'protection': '60% minimum to receive points',
+            'htp': '4% minimum attainment to prevent losing 50% of protection score',
+            'rate-plan': '65% minimum to receive points',
+            'next-up': '60% minimum to receive points',
+            'csat': '80% minimum to receive points',
+            'wildcard-1': '50% minimum to receive points',
+            'wildcard-2': '50% minimum to receive points'
+        };
+
+        $('.input-field').focus(function () {
+            const inputId = $(this).attr('id');
+            const tooltipText = tooltips[inputId];
+
+            if (!tooltipText) return; // Exit if no tooltip defined
+
+            const tooltip = $('#tooltip');
+            const weight = (isInFootprint ? weightsIF : weightsOOF)[inputId] || 0;
+
+            tooltip.html(`${tooltipText}<br><strong>Weight: ${weight}%</strong>`);
+
+            // Calculate the position
+            const windowWidth = $(window).width();
+            const tooltipWidth = tooltip.outerWidth();
+            const inputOffset = $(this).offset();
+            const inputHeight = $(this).outerHeight();
+
+            const tooltipTop = inputOffset.top - tooltip.outerHeight() - 10;
+
+            tooltip.css({
+                top: tooltipTop,
+                left: (windowWidth / 2) - (tooltipWidth / 2),
+                display: 'block'
+            });
+        }).blur(function () {
+            $('#tooltip').hide();
+        });
+
+        // 1st Scale Point - opps, ppvga, accessories, wildcard1, wildcard2
+        function getScalePointGroup1(number) {
+            if (number >= 0 && number <= 49) return 0;
+            if (number >= 50 && number <= 59) return 5;
+            if (number >= 60 && number <= 69) return 6;
+            if (number >= 70 && number <= 79) return 7;
+            if (number >= 80 && number <= 89) return 8;
+            if (number >= 90 && number <= 99) return 9;
+            if (number >= 100) return 10;
+            return 0;
+        }
+
+        // 2nd Scale Point - internet
+        function getScalePointGroup2(number) {
+            if (number >= 0 && number <= 59) return 0;
+            if (number >= 60 && number <= 69) return 6;
+            if (number >= 70 && number <= 79) return 7;
+            if (number >= 80 && number <= 89) return 8;
+            if (number >= 90 && number <= 99) return 9;
+            if (number >= 100) return 10;
+            return 0;
+        }
+
+        // 3rd Scale Point - protection, next up
+        function getScalePointGroup3(number) {
+            if (number >= 0 && number <= 59) return 0;
+            if (number >= 60 && number <= 64) return 6;
+            if (number >= 65 && number <= 69) return 7;
+            if (number >= 70 && number <= 74) return 8;
+            if (number >= 75 && number <= 79) return 9;
+            if (number >= 80) return 10;
+            return 0;
+        }
+
+        // 4th Scale Point - rate plan
+        function getScalePointGroup4(number) {
+            if (number >= 0 && number <= 64) return 0;
+            if (number >= 65 && number <= 69) return 6;
+            if (number >= 70 && number <= 74) return 7;
+            if (number >= 75 && number <= 79) return 8;
+            if (number >= 80 && number <= 84) return 9;
+            if (number >= 85) return 10;
+            return 0;
+        }
+
+        // 5th Scale Point - csat
+        function getScalePointGroup5(number) {
+            if (number >= 0 && number <= 79) return 0;
+            if (number >= 80 && number <= 84) return 7;
+            if (number >= 85 && number <= 89) return 8;
+            if (number >= 90 && number <= 94) return 9;
+            if (number >= 95) return 10;
+            return 0;
+        }
+
+        function getPointsNeededForNextPowerRank(totalPoints) {
+            if (totalPoints >= 5 && totalPoints <= 7) return 8 - totalPoints;
+            if (totalPoints >= 8 && totalPoints <= 15) return 16 - totalPoints;
+            if (totalPoints >= 16 && totalPoints <= 23) return 24 - totalPoints;
+            if (totalPoints >= 24 && totalPoints <= 31) return 32 - totalPoints;
+            if (totalPoints >= 32 && totalPoints <= 39) return 40 - totalPoints;
+            if (totalPoints >= 40 && totalPoints <= 47) return 48 - totalPoints;
+            if (totalPoints >= 48 && totalPoints <= 55) return 56 - totalPoints;
+            if (totalPoints >= 56 && totalPoints <= 63) return 64 - totalPoints;
+            if (totalPoints >= 64 && totalPoints <= 71) return 72 - totalPoints;
+            if (totalPoints >= 72 && totalPoints <= 79) return 80 - totalPoints;
+            return 0;
+        }
+
+        const weightsIF = {
+            'opps': 20,
+            'ppvga': 20,
+            'internet': 20,
+            'accessories': 10,
+            'protection': 5,
+            'rate-plan': 5,
+            'next-up': 5,
+            'csat': 5,
+            'wildcard-1': 5,
+            'wildcard-2': 5
+        };
+
+        const weightsOOF = {
+            'opps': 25,
+            'ppvga': 25,
+            'accessories': 20,
+            'protection': 5,
+            'rate-plan': 5,
+            'next-up': 5,
+            'csat': 5,
+            'wildcard-1': 5,
+            'wildcard-2': 5
+        };
+
+        
+let currentRank = 0;
+
+function animatePowerRank(target) {
+    $({ countNum: currentRank }).animate({ countNum: target }, {
+        duration: 500,
+        easing: 'swing',
+        step: function() {
+            $('#power-rank').text('Power Rank: ' + this.countNum.toFixed(1));
+        },
+        complete: function() {
+            $('#power-rank').text('Power Rank: ' + target.toFixed(1));
+            currentRank = target;
+        }
+    });
+}
+
+
+function updatePowerRank() {
+        let values = {
+            'opps': parseFloat($('#opps').val()) || 0,
+            'ppvga': parseFloat($('#ppvga').val()) || 0,
+            'accessories': parseFloat($('#accessories').val()) || 0,
+            'protection': parseFloat($('#protection').val()) || 0,
+            'rate-plan': parseFloat($('#rate-plan').val()) || 0,
+            'next-up': parseFloat($('#next-up').val()) || 0,
+            'csat': parseFloat($('#csat').val()) || 0,
+            'wildcard-1': parseFloat($('#wildcard-1').val()) || 0,
+            'wildcard-2': parseFloat($('#wildcard-2').val()) || 0
+        };
+
+        const htpValue = parseFloat($('#htp').val()) || 0;
+
+        if (htpValue < 4) {
+            $('#htp-warning').removeClass('hidden');
+        } else {
+            $('#htp-warning').addClass('hidden');
+        }
+
+        let weights = isInFootprint ? weightsIF : weightsOOF;
+        if (isInFootprint) {
+            values['internet'] = parseFloat($('#internet').val()) || 0;
+        }
+
+        let totalPoints = 0;
+        let totalWeight = 0;
+
+        Object.keys(values).forEach(metricId => {
+            let val = values[metricId];
+            let points = 0;
+
+            if (['opps', 'ppvga', 'accessories', 'wildcard-1', 'wildcard-2'].includes(metricId)) {
+                points = getScalePointGroup1(val);
+            } else if (metricId === 'internet') {
+                points = getScalePointGroup2(val);
+            } else if (['protection', 'next-up'].includes(metricId)) {
+                points = getScalePointGroup3(val);
+            } else if (metricId === 'rate-plan') {
+                points = getScalePointGroup4(val);
+            } else if (metricId === 'csat') {
+                points = getScalePointGroup5(val);
+            }
+
+            // Apply 50% reduction if HTP < 4 and metric is protection
+            if (metricId === 'protection' && htpValue < 4) {
+                points = Math.floor(points / 2);
+            }
+
+            let weight = weights[metricId];
+            let contribution = ((points * weight) / 100).toFixed(2);
+
+            totalPoints += (points * weight);
+            totalWeight += weight;
+
+            let pointTextClass = '';
+
+            let pointsText = `${points} Points`;
+
+            if (metricId === 'protection' && htpValue < 4) {
+                pointsText = `<span style="color: #e74c3c;">${points} Points</span>`;
+            }
+
+            $(`#${metricId}-points`).html(`${pointsText} <span class="contribution ${showContributions ? '' : 'hidden'}">★ ${contribution}</span>`);
+        });
+
+        let powerRank = (totalPoints / totalWeight).toFixed(1);
+        animatePowerRank(parseFloat(powerRank));
+
+        $('.floating-container').css('background-color', getColor(powerRank));
+    }
+
+
+        function getColor(powerRank) {
+            if (powerRank < 2) return '#FF3F3F';
+            if (powerRank < 3) return '#FF3F3F';
+            if (powerRank < 4) return '#F65448';
+            if (powerRank < 5) return '#F7665B';
+            if (powerRank < 6) return '#F8766C';
+            if (powerRank < 7) return '#F6A382';
+            if (powerRank < 8) return '#FCECA6';
+            if (powerRank < 9) return '#B6E8C0';
+            if (powerRank < 10) return '#8BD99A';
+            return '#53C587';
+        }
+
+    </script>
 </body>
 </html>
