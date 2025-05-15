@@ -834,7 +834,7 @@ $(document).ready(function() {
             'internet': '60% minimum to receive points',
             'accessories': '50% minimum to receive points',
             'protection': '60% minimum to receive points',
-            'htp': '4% minimum attainment to prevent losing 50% of protection score',
+            'htp': '5% minimum attainment to prevent losing 50% of protection score',
             'rate-plan': '65% minimum to receive points',
             'next-up': '60% minimum to receive points',
             'csat': '80% minimum to receive points',
@@ -907,11 +907,11 @@ $(document).ready(function() {
         // 4th Scale Point - rate plan
         function getScalePointGroup4(number) {
             if (number >= 0 && number <= 64) return 0;
-            if (number >= 65 && number <= 69) return 6;
-            if (number >= 70 && number <= 74) return 7;
-            if (number >= 75 && number <= 79) return 8;
-            if (number >= 80 && number <= 84) return 9;
-            if (number >= 85) return 10;
+            if (number >= 62 && number <= 68) return 6;
+            if (number >= 67 && number <= 71) return 7;
+            if (number >= 72 && number <= 76) return 8;
+            if (number >= 77 && number <= 81) return 9;
+            if (number >= 82) return 10;
             return 0;
         }
 
@@ -997,7 +997,7 @@ function updatePowerRank() {
 
         const htpValue = parseFloat($('#htp').val()) || 0;
 
-        if (htpValue < 4) {
+        if (htpValue < 5) {
             $('#htp-warning').removeClass('hidden');
         } else {
             $('#htp-warning').addClass('hidden');
