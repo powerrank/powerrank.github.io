@@ -834,7 +834,7 @@ $(document).ready(function() {
             'internet': '60% minimum to receive points',
             'accessories': '50% minimum to receive points',
             'protection': '60% minimum to receive points',
-            'htp': '5% minimum attainment to prevent losing 50% of protection score',
+            'htp': '5.5% minimum attainment to prevent losing 50% of protection score',
             'rate-plan': '65% minimum to receive points',
             'next-up': '60% minimum to receive points',
             'csat': '80% minimum to receive points',
@@ -997,7 +997,7 @@ function updatePowerRank() {
 
         const htpValue = parseFloat($('#htp').val()) || 0;
 
-        if (htpValue < 5) {
+        if (htpValue < 5.5) {
             $('#htp-warning').removeClass('hidden');
         } else {
             $('#htp-warning').addClass('hidden');
