@@ -1027,8 +1027,8 @@ function updatePowerRank() {
                 points = getScalePointGroup5(val);
             }
 
-            // Apply 50% reduction if HTP < 4 and metric is protection
-            if (metricId === 'protection' && htpValue < 4) {
+            // Apply 50% reduction if HTP < 5.5 and metric is protection
+            if (metricId === 'protection' && htpValue < 5.5) {
                 points = Math.floor(points / 2);
             }
 
@@ -1042,7 +1042,7 @@ function updatePowerRank() {
 
             let pointsText = `${points} Points`;
 
-            if (metricId === 'protection' && htpValue < 4) {
+            if (metricId === 'protection' && htpValue < 5.5) {
                 pointsText = `<span style="color: #e74c3c;">${points} Points</span>`;
             }
 
