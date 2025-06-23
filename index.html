@@ -1049,8 +1049,14 @@ function updatePowerRank() {
             $(`#${metricId}-points`).html(`${pointsText} <span class="contribution ${showContributions ? '' : 'hidden'}">★ ${contribution}</span>`);
         });
 
-        let powerRank = (totalPoints / totalWeight).toFixed(1);
-        animatePowerRank(parseFloat(powerRank));
+        // …after you calculate totalPoints and totalWeight…
+        const raw = totalPoints / totalWeight;
+        
+        // always round *down* to the nearest tenth:
+        const powerRank = Math.floor(raw * 10) / 10;
+        
+        // now animate using that truncated value:
+        animatePowerRank(powerRank);
 
         $('.floating-container').css('background-color', getColor(powerRank));
     }
