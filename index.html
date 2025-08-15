@@ -563,7 +563,7 @@ $(document).ready(function() {
             'internet': '60% minimum to receive points',
             'accessories': '50% minimum to receive points',
             'protection': '60% minimum to receive points',
-            'htp': '5.5% minimum attainment to prevent losing 50% of protection score',
+            'htp': '6% minimum attainment to prevent losing 50% of protection score',
             'rate-plan': '65% minimum to receive points',
             'next-up': '60% minimum to receive points',
             'csat': '80% minimum to receive points',
@@ -674,7 +674,7 @@ $(document).ready(function() {
                 let pts = pointsFor(metricId, val, active);
 
                 // Apply 50% reduction if HTP below rule for protection
-                if (metricId === 'protection' && htpValue < (PR_CONFIG.rules?.protectionHalfIfHtpBelow ?? 5.5)) {
+                if (metricId === 'protection' && htpValue < (PR_CONFIG.rules?.protectionHalfIfHtpBelow ?? 6)) {
                     pts = Math.floor(pts / 2);
                 }
 
@@ -685,7 +685,7 @@ $(document).ready(function() {
                 totalWeight += weight;
 
                 let pointsText = `${pts} Points`;
-                if (metricId === 'protection' && htpValue < (PR_CONFIG.rules?.protectionHalfIfHtpBelow ?? 5.5)) {
+                if (metricId === 'protection' && htpValue < (PR_CONFIG.rules?.protectionHalfIfHtpBelow ?? 6)) {
                     pointsText = `<span style="color: #e74c3c;">${pts} Points</span>`;
                 }
 
@@ -716,3 +716,4 @@ $(document).ready(function() {
     </script>
 </body>
 </html>
+
