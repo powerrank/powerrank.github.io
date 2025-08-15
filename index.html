@@ -6,453 +6,173 @@
     <meta name="description" content="Power Ranks Calculator is a sales performance tool that helps store leaders calculate their Power Rank by evaluating key metrics.">
     <title>Power Rank Calculator</title>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script>
+/* ==== CONFIG ENGINE (no change) ==== */
+let PR_CONFIG = {};
+
+async function loadConfig() {
+  try {
+    const res = await fetch('config.json', { cache: 'no-store' });
+    if (res.ok) {
+      PR_CONFIG = await res.json();
+      localStorage.setItem('pr_config_cache', JSON.stringify(PR_CONFIG));
+    } else {
+      const cached = localStorage.getItem('pr_config_cache');
+      if (cached) PR_CONFIG = JSON.parse(cached);
+    }
+  } catch (e) {
+    const cached = localStorage.getItem('pr_config_cache');
+    if (cached) PR_CONFIG = JSON.parse(cached);
+  }
+}
+
+function getActiveScale() {
+  const fp = (typeof isInFootprint !== 'undefined' && isInFootprint) ? 'IF' : 'OOF';
+  const base = PR_CONFIG.footprints;
+  if (base.OOF.thresholds === '@same-as-IF') base.OOF.thresholds = base.IF.thresholds;
+  if (base.OOF.metricToGroup === '@same-as-IF') base.OOF.metricToGroup = base.IF.metricToGroup;
+  return base[fp];
+}
+
+function pointsFor(metricId, value, activeCfg) {
+  const grp = activeCfg.metricToGroup[metricId];
+  const table = activeCfg.thresholds[grp] || [];
+  for (let i = 0; i < table.length; i++) {
+    const [lo, hi, pts] = table[i];
+    if (value >= lo && value <= hi) return pts;
+  }
+  return table.length ? table[table.length - 1][2] : 0;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadConfig().then(() => { try { if (typeof updatePowerRank === 'function') updatePowerRank(); } catch(_){} });
+});
+/* ==== END CONFIG ENGINE ==== */
+</script>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 5% 2%; /* Responsive padding */
-            background-color: #f9f9f9; /* Light background for contrast */
+            padding: 5% 2%;
+            background-color: #f9f9f9;
             padding-top: 120px;
             padding-bottom: 150px;
             display: flex;
-            flex-direction: column; /* Stack elements vertically */
-            justify-content: center; /* Center horizontally */
-            align-items: center; /* Center align */
-            height: auto; /* Remove fixed height */
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: auto;
             position: relative;
-            overflow-x: hidden; /* Prevent horizontal scrolling */
-            touch-action: manipulation; /* Prevents zooming on touch */
+            overflow-x: hidden;
+            touch-action: manipulation;
         }
-        h1 {
-            text-align: center; /* Align title to the center */
-            color: #333;
-            margin-bottom: 10px; /* Reduced margin */
-        }
-        h3 {
-            text-align: center; /* Align title to the center */
-            color: #333;
-            margin-bottom: 1px; /* Reduced margin */
-        }
-        .input-container {
-            width: 50%; /* Responsive width */
-            max-width: 200px; /* Limit max width for larger screens */
-            margin: 0 auto; /* Center container */
-        }
+        h1 { text-align: center; color: #333; margin-bottom: 10px; }
+        h3 { text-align: center; color: #333; margin-bottom: 1px; }
+        .input-container { width: 50%; max-width: 200px; margin: 0 auto; }
         .input-field {
-            appearance: none; /* Remove default styling */
-            -webkit-appearance: none; /* Remove default styling for Safari */
-            -moz-appearance: none; /* Remove default styling for Firefox */
-            background-color: white;
-            cursor: pointer; /* Change cursor to pointer */
-            width: 40%; /* Full width for responsive design */
-            margin: 0;
-            min-height: 20px; /* Ensure touch-friendly */
-            padding: 10px; /* Padding for input fields */
-            border: 2px solid #ccc;
-            border-radius: 5px; /* Slightly smaller border radius */
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            transition: border-color 0.3s, box-shadow 0.3s;
-            font-size: 16px; /* Set font size to 16px or larger */
-            touch-action: manipulation; /* Prevents zooming on touch */
+            appearance: none; -webkit-appearance: none; -moz-appearance: none;
+            background-color: white; cursor: pointer; width: 40%; margin: 0;
+            min-height: 20px; padding: 10px; border: 2px solid #ccc; border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: border-color .3s, box-shadow .3s;
+            font-size: 16px; touch-action: manipulation;
         }
-        .input-field:focus {
-            border-color: #007BFF; /* Change border color on focus */
-            box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
-            outline: none; /* Remove default outline */
-        }   
-        .input-wrapper {
-            display: flex; /* Use flexbox for alignment */
-            align-items: center; /* Align items vertically centered */
-            margin-bottom: 10px; /* Space between input fields */
-        }
-
-        .htp-label {
-            font-size: 13px;
-            color: #555;
-        }
-
-        .small-input {
-            width: 45px;
-            padding: 8px;
-        }
-
-        .htp-input {
-            width: 55px;
-            padding: 6px 8px;
-            font-size: 14px;
-        }
-
-        .reduced-points {
-            color: #c0392b !important; /* red tone or use gray if preferred */
-            font-weight: bold;
-        }
-
-        .htp-warning {
-            margin-left: 8px;
-            font-size: 12px;
-            color: #e74c3c;
-            font-style: italic;
-        }
-
-        .reduction-note {
-            margin-left: 6px;
-            font-size: 12px;
-            color: #e74c3c;
-            font-style: italic;
-        }
-
-        label {
-            margin-bottom: 5px;
-            display: block;
-            color: #555;
-        }
-        
-        .points {
-            margin-left: 10px; /* Space between input and points */
-            width: 100px;
-            font-weight: bold;
-            color: #007BFF; /* Color for points display */
-        }
-
-        .contribution {
-            margin-left: 5px;
-            font-weight: bold;
-            color: #28a745; /* Green color for contribution */
-        }
-
-        .percentage {
-            margin-left: 5px; /* Space between input and percentage symbol */
-            font-weight: bold; /* Bold style for emphasis */
-            color: #333; /* Same color as the title */
-        }
-        .recommendation {
-            margin-left: 10px; /* Space between input and recommendation */
-            font-weight: bold;
-            color: #FF5733; /* Color for recommendations */
-        }
-
+        .input-field:focus { border-color: #007BFF; box-shadow: 0 0 5px rgba(0,123,255,.5); outline: none; }
+        .input-wrapper { display: flex; align-items: center; margin-bottom: 10px; }
+        .htp-label { font-size: 13px; color: #555; }
+        .small-input { width: 45px; padding: 8px; }
+        .htp-input { width: 55px; padding: 6px 8px; font-size: 14px; }
+        .reduced-points { color: #c0392b !important; font-weight: bold; }
+        .htp-warning, .reduction-note { margin-left: 8px; font-size: 12px; color: #e74c3c; font-style: italic; }
+        label { margin-bottom: 5px; display: block; color: #555; }
+        .points { margin-left: 10px; width: 100px; font-weight: bold; color: #007BFF; }
+        .contribution { margin-left: 5px; font-weight: bold; color: #28a745; }
+        .percentage { margin-left: 5px; font-weight: bold; color: #333; }
+        .recommendation { margin-left: 10px; font-weight: bold; color: #FF5733; }
         .tooltip {
-            position: absolute;
-            background-color: #333;
-            color: white;
-            padding: 8px 12px;
-            border-radius: 5px;
-            font-size: 14px;
-            z-index: 1000;
-            opacity: 0.95;
-            pointer-events: none;
-            max-width: 280px;
-            line-height: 1.4;
-            text-align: center;
+            position: absolute; background-color: #333; color: white; padding: 8px 12px; border-radius: 5px;
+            font-size: 14px; z-index: 1000; opacity: .95; pointer-events: none; max-width: 280px;
+            line-height: 1.4; text-align: center;
         }
-
         .floating-container {
-            position: fixed; /* Keep it fixed */
-            top: 0; /* Align to bottom */
-            left: 0;
-            right: 0; /* Full width */
-            background-color: #007BFF; /* Background color */
-            color: white; /* Text color */
-            padding: 10px; /* Adjust padding for mobile */
-            text-align: center; /* Center the text */
-            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2); /* Shadow for depth */
-            z-index: 1; /* Lower z-index than hamburger menu */
+            position: fixed; top: 0; left: 0; right: 0; background-color: #007BFF; color: white;
+            padding: 10px; text-align: center; box-shadow: 0 -2px 10px rgba(0,0,0,.2); z-index: 1;
         }
+        .result { font-size: 24px; font-weight: bold; margin-top: 10px; color: #333; }
 
-        .result {
-            font-size: 24px;
-            font-weight: bold;
-            margin-top: 10px;
-            color: #333;
-        }
- 
- 
-                /* Hamburger Menu Container Styles */
         .hamburger-container {
-            position: fixed; /* Keep it fixed */
-            top: 20px; /* Position it at the top */
-            left: 20px; /* Position it at the left */
-            background-color: rgba(255, 255, 255, 0.8); /* White background with opacity */
-            border-radius: 10px; /* Rounded corners */
-            padding: 10px; /* Padding around the icon */
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Shadow for depth */
-            z-index: 2; /* Higher z-index to be on top of the floating container */
+            position: fixed; top: 20px; left: 20px; background-color: rgba(255,255,255,.8);
+            border-radius: 10px; padding: 10px; box-shadow: 0 2px 5px rgba(0,0,0,.2); z-index: 2;
         }
-        
-        .hamburger-menu {
-            cursor: pointer;
-        }
-        
-        .hamburger-menu .bar {
-            width: 30px;
-            height: 3px;
-            background-color: #333;
-            margin: 5px 0;
-            transition: 0.4s;
-        }
-        
-        .hamburger-menu .bar:nth-child(2) {
-            width: 20px; /* Second bar slightly narrower */
-        }
-        
-        /* Media Queries for Smaller Devices */
+        .hamburger-menu { cursor: pointer; }
+        .hamburger-menu .bar { width: 30px; height: 3px; background-color: #333; margin: 5px 0; transition: .4s; }
+        .hamburger-menu .bar:nth-child(2) { width: 20px; }
+
         @media (max-width: 600px) {
-            .input-field {
-                font-size: 16px; /* Smaller font for mobile */
-            }
-            h1 {
-                font-size: 24px; /* Smaller title */
-            }
-            .floating-container {
-                padding: 5px; /* Adjust padding for mobile */
-            }
-            .toast {
-                max-width: 400px; /* Wider on tablets and desktops */
-            }
+            .input-field { font-size: 16px; }
+            h1 { font-size: 24px; }
+            .floating-container { padding: 5px; }
+            .toast { max-width: 400px; }
         }
- 
+
         .slider-menu {
-            position: fixed;
-            top: 0;
-            left: -250px; /* Start hidden off-screen */
-            width: 150px; /* Width of the sliding menu */
-            height: 100%; /* Full height */
-            background-color: #007BFF; /* Background color */
-            color: white; /* Text color */
-            transition: left 0.3s ease; /* Smooth transition for sliding effect */
-            z-index: 2; /* Ensure it appears above other content */
-            padding: 20px; /* Padding inside the menu */
+            position: fixed; top: 0; left: -250px; width: 150px; height: 100%;
+            background-color: #007BFF; color: white; transition: left .3s ease; z-index: 2; padding: 20px;
         }
-
-        .slider-menu-title {
-            position: absolute;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 20px;
-            font-weight: bold;
-            white-space: nowrap;
-        }
-
-        .slider-menu h2 h3 {
-            margin-top: 0; /* Remove margin for the title */
-        }
-        
-        .slider-menu ul {
-            list-style-type: none; /* Remove bullet points */
-            margin-top: 40%;
-            padding: 0; /* Remove padding */
-        }
-        
-        .slider-menu li {
-            margin: 20px 0; /* Space between menu items */
-        }
-        
-        .slider-menu a {
-            color: white; /* Link color */
-            text-decoration: none; /* Remove underline */
-            font-size: 18px; /* Font size */
-        }
-        
-        /* Active state for links */
-        .slider-menu a:hover {
-            text-decoration: underline; /* Underline on hover */
-        }
-        
-        .signature {
-            position: absolute; /* Position it absolutely within the slider */
-            bottom: 50px; /* Distance from the bottom */
-            left: 50%; /* Center horizontally */
-            transform: translateX(-50%); /* Adjust to center the text */
-            font-size: 14px; /* Font size */
-            color: #ffffff; /* Text color */
-            text-align: center; /* Center align text */
-        }
-        
+        .slider-menu-title { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); font-size: 20px; font-weight: bold; white-space: nowrap; }
+        .slider-menu h2 h3 { margin-top: 0; }
+        .slider-menu ul { list-style-type: none; margin-top: 40%; padding: 0; }
+        .slider-menu li { margin: 20px 0; }
+        .slider-menu a { color: white; text-decoration: none; font-size: 18px; }
+        .slider-menu a:hover { text-decoration: underline; }
+        .signature { position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%); font-size: 14px; color: #fff; text-align: center; }
 
         .floating-button-container {
-            position: fixed; /* Keep it fixed */
-            top: 20px; /* Position it at the top */
-            right: 20px; /* Position it at the right */
-            background-color: rgba(255, 255, 255, 0.8); /* White background with opacity */
-            border-radius: 10px; /* Rounded corners */
-            padding: 10px; /* Padding around the icon */
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Shadow for depth */
-            z-index: 2; /* Higher z-index to be on top of the floating container */
+            position: fixed; top: 20px; right: 20px; background-color: rgba(255,255,255,.8);
+            border-radius: 10px; padding: 10px; box-shadow: 0 2px 5px rgba(0,0,0,.2); z-index: 2;
         }
-
-        .setting-icon {
-            width: 30px; /* Adjust size as needed */
-            height: 30px; /* Adjust size as needed */
-            cursor: pointer; /* Change cursor to pointer */
-            display: block; /* Ensure it behaves like a block element */
-            margin: 0 auto; /* Center the icon */
-        }
-        .floating-button {
-            cursor: pointer;
-        }
-
-        .floating-button .bar {
-            width: 30px;
-            height: 3px;
-            background-color: #333;
-            margin: 5px 0;
-            transition: 0.4s;
-        }
+        .setting-icon { width: 30px; height: 30px; cursor: pointer; display: block; margin: 0 auto; }
+        .floating-button { cursor: pointer; }
+        .floating-button .bar { width: 30px; height: 3px; background-color: #333; margin: 5px 0; transition: .4s; }
 
         .slider-menu-right {
-            position: fixed;
-            top: 0;
-            right: -250px; /* Start hidden off-screen */
-            width: 200px; /* Width of the sliding menu */
-            height: 100%; /* Full height */
-            background-color: #007BFF; /* Background color */
-            color: white; /* Text color */
-            transition: right 0.3s ease; /* Smooth transition for sliding effect */
-            z-index: 2; /* Ensure it appears above other content */
-            padding: 20px; /* Padding inside the menu */
+            position: fixed; top: 0; right: -250px; width: 200px; height: 100%;
+            background-color: #007BFF; color: white; transition: right .3s ease; z-index: 2; padding: 20px;
         }
-
-        .slider-menu-right h2 {
-            margin-top: 0; /* Remove margin for the title */
-        }
-
+        .slider-menu-right h2 { margin-top: 0; }
         .slider-menu-right button {
-            background-color: #FF5733; /* Button color */
-            color: white; /* Text color */
-            border: none; /* Remove border */
-            padding: 10px; /* Padding for button */
-            margin-bottom: 10px;
-            border-radius: 5px; /* Rounded corners */
-            cursor: pointer; /* Pointer cursor */
-            width: 100%; /* Full width */
+            background-color: #FF5733; color: white; border: none; padding: 10px; margin-bottom: 10px;
+            border-radius: 5px; cursor: pointer; width: 100%;
         }
+        .slider-menu-right button:hover { background-color: #FF3F3F; }
 
-        .slider-menu-right button:hover {
-            background-color: #FF3F3F; /* Darker color on hover */
-        }
-
-        .confirmation-popup {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: #000c19;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 5px;
-            z-index: 1000;
-        }
-
-        .popup-notification {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: #2c4056;
-            color: white;
-            padding: 15px;
-            border-radius: 5px;
-            z-index: 1000;
-            display: block; /* Initially hidden */
-            opacity: 0; /* Start with no opacity */
-            transition: opacity 2s ease; /* Fade effect */
-        }
-
-        .hidden {
-            display: none;
-        }
-
- 
+        .confirmation-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: #000c19; color: white; padding: 10px 20px; border-radius: 5px; z-index: 1000; }
+        .popup-notification { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background-color: #2c4056; color: white; padding: 15px; border-radius: 5px; z-index: 1000; display: block; opacity: 0; transition: opacity 2s ease; }
+        .hidden { display: none; }
     </style>
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 <style>
-    body {
-        font-family: 'Poppins', sans-serif;
-    }
-    .input-field:focus {
-        border-color: #0a84ff;
-        box-shadow: 0 0 8px rgba(10, 132, 255, 0.6);
-        transform: scale(1.02);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .floating-container {
-        transition: background-color 0.5s ease;
-    }
-    .input-wrapper {
-        transition: background-color 0.3s ease;
-        border-radius: 5px;
-    }
-    .input-wrapper:hover {
-        background-color: #eef6ff;
-    }
-    #hamburger-menu, #setting-icon {
-        transition: transform 0.2s ease;
-    }
-    #hamburger-menu:hover, #setting-icon:hover {
-        transform: scale(1.1);
-    }
+    body { font-family: 'Poppins', sans-serif; }
+    .input-field:focus { border-color: #0a84ff; box-shadow: 0 0 8px rgba(10,132,255,.6); transform: scale(1.02); transition: transform .2s ease, box-shadow .2s ease; }
+    .floating-container { transition: background-color .5s ease; }
+    .input-wrapper { transition: background-color .3s ease; border-radius: 5px; }
+    .input-wrapper:hover { background-color: #eef6ff; }
+    #hamburger-menu, #setting-icon { transition: transform .2s ease; }
+    #hamburger-menu:hover, #setting-icon:hover { transform: scale(1.1); }
 </style>
 
-
 <style>
-
 .toast {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    min-width: 260px;
-    max-width: 90vw;
-    padding: 16px 20px;
-    background-color: #2c4056;
-    color: white;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    font-size: 16px;
-    text-align: left;
-    z-index: 1000;
-    opacity: 0;
-    pointer-events: none; 
-    transition: opacity 0.5s ease;
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%); min-width: 260px; max-width: 90vw;
+    padding: 16px 20px; background-color: #2c4056; color: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.2);
+    font-size: 16px; text-align: left; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity .5s ease;
 }
-
-.toast.show {
-    opacity: 1;
-    pointer-events: auto; 
-}
-.toast-actions {
-    margin-top: 12px;
-    display: flex;
-    justify-content: center;
-}
-
-.toast ul {
-    margin: 10px 0;
-    padding-left: 20px;
-}
-
-.toast ul li {
-    margin-bottom: 5px;
-}
-
-.toast button {
-    background-color: #FF5733;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 14px;
-    
-}
-
-.toast button:hover {
-    background-color: #FF3F3F;
-}
-
-
+.toast.show { opacity: 1; pointer-events: auto; }
+.toast-actions { margin-top: 12px; display: flex; justify-content: center; }
+.toast ul { margin: 10px 0; padding-left: 20px; }
+.toast ul li { margin-bottom: 5px; }
+.toast button { background-color: #FF5733; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-size: 14px; }
+.toast button:hover { background-color: #FF3F3F; }
 </style>
 
 </head>
@@ -472,7 +192,7 @@
     <div class="floating-container">
         <h2 id="power-rank">Power Rank: 0</h2>
     </div>
- 
+
     <h3 id="selected-scale-point">Point Scale: <span id="scale-point-text" style="color: #007BFF;">IN FOOT PRINT</span></h3>
     <h1>Power Rank Calculator</h1>
     <div class="input-container">
@@ -483,7 +203,7 @@
             <span id="opps-points" class="points">0 Points</span>
             <span id="opps-recommendation" class="recommendation"></span>
         </div>
- 
+
         <label for="ppvga">PPVGA to Goal:</label>
         <div class="input-wrapper">
             <input type="tel" id="ppvga" class="input-field" oninput="updatePowerRank()" min="1" max="100">
@@ -491,7 +211,7 @@
             <span id="ppvga-points" class="points">0 Points</span>
             <span id="ppvga-recommendation" class="recommendation"></span>
         </div>
- 
+
         <div id="internet-container">
             <label for="internet-goal">Internet to Goal:</label>
             <div class="input-wrapper">
@@ -508,15 +228,14 @@
             <span class="percentage">%</span>
             <span id="accessories-points" class="points">0 Points</span>
             <span id="accessories-recommendation" class="recommendation"></span>
-        </div>        
- 
-        
+        </div>
+
         <label for="protection">Protection:</label>
         <div class="input-wrapper">
-                <input type="tel" id="protection" class="input-field" oninput="updatePowerRank()" min="0" max="100">
-                <span class="percentage">%</span>
-                <span id="protection-points" class="points">0 Points</span>
-                <span id="protection-recommendation" class="protection"></span>
+            <input type="tel" id="protection" class="input-field" oninput="updatePowerRank()" min="0" max="100">
+            <span class="percentage">%</span>
+            <span id="protection-points" class="points">0 Points</span>
+            <span id="protection-recommendation" class="protection"></span>
         </div>
 
         <label for="htp" class="htp-label">HTP:</label>
@@ -526,7 +245,6 @@
             <span id="htp-warning" class="htp-warning hidden">Low HTP - Protection Score Reduced</span>
         </div>
 
-        
         <label for="rate-plan">Rate Plan:</label>
         <div class="input-wrapper">
             <input type="tel" id="rate-plan" class="input-field" oninput="updatePowerRank()" min="1" max="100">
@@ -534,7 +252,7 @@
             <span id="rate-plan-points" class="points">0 Points</span>
             <span id="rate-plan-recommendation" class="recommendation"></span>
         </div>
- 
+
         <label for="next-up">Next Up:</label>
         <div class="input-wrapper">
             <input type="tel" id="next-up" class="input-field" oninput="updatePowerRank()" min="1" max="100">
@@ -551,7 +269,7 @@
             <span id="csat-recommendation" class="recommendation"></span>
         </div>
 
-        <label for="wildcard-1">CRU FN:</label>
+        <label for="wildcard-1">Plus 1 to Goal:</label>
         <div class="input-wrapper">
             <input type="tel" id="wildcard-1" class="input-field" oninput="updatePowerRank()" min="1" max="100">
             <span class="percentage">%</span>
@@ -559,19 +277,17 @@
             <span id="wildcard-1-recommendation" class="recommendation"></span>
         </div>
 
-        <label for="wildcard-2">Prepaid:</label>
+        <label for="wildcard-2" id="wildcard-2-label">CRU/FN</label>
         <div class="input-wrapper">
             <input type="tel" id="wildcard-2" class="input-field" oninput="updatePowerRank()" min="1" max="100">
             <span class="percentage">%</span>
             <span id="wildcard-2-points" class="points">0 Points</span>
             <span id="wildcard-2-recommendation" class="recommendation"></span>
         </div>
-        
+
         <div class="tooltip" id="tooltip" style="display: none;"></div>
     </div>
 
-
- 
     <!-- Sliding Menu -->
     <div class="slider-menu" id="slider-menu">
         <h2 class="slider-menu-title">Power Ranks</h2>
@@ -579,8 +295,6 @@
             <li><a href="">Calculator</a></li>
             <li><a href="metricscales.html">Point & Weight Scale Metrics</a></li>
             <li><a href="faq.html">FAQ</a></li>
-            <!--<li><a href="contactinfo.html">Contact Info</a></li>
-            <li><a href="currentevent.html">Current Event</a></li>-->
         </ul>
         <div class="signature">
             Built by <br> The Revenue Management Team
@@ -589,10 +303,17 @@
 
     <div class="slider-menu-right" id="slider-menu-right">
         <h2 style="text-align: center;">Calculator Settings</h2>
+
         <h4 style="text-align: center;">Pick Store Footprint</h4>
         <button id="if-button">IF</button>
         <button id="oof-button">OOF</button>
-        <h4 style="text-align: center;">Additional Options</h4>
+
+        <h4 style="text-align: center; margin-top: 16px;">Pick 2nd Wildcard</h4>
+        <button id="wildcard2-crufn">CRU/FN</button>
+        <button id="wildcard2-fiber">Fiber CR</button>
+        <button id="wildcard2-aia">AIA CR</button>
+
+        <h4 style="text-align: center; margin-top: 16px;">Additional Options</h4>
         <button id="toggle-contribution">Show Contribution</button>
         <button id="reset-button">Reset Calculator</button>
     </div>
@@ -608,8 +329,11 @@
         let isInFootprint = true;
         let showContributions = false;
 
-        const CURRENT_VERSION = '2.0';
+        // NEW: Wildcard-2 selection state (defaults)
+        let wildcard2Group = 'group1';   // 'group1' | 'FiberCR' | 'AIACR'
+        let wildcard2Label = 'CRU/FN';   // UI label shown next to input
 
+        const CURRENT_VERSION = '2.0';
 
         function markReturningUser() {
             localStorage.setItem('hasVisitedBefore', 'true');
@@ -617,8 +341,10 @@
 
         function saveSettings() {
             const settings = {
-                isInFootprint: isInFootprint,
-                showContributions: showContributions
+                isInFootprint,
+                showContributions,
+                wildcard2Group,
+                wildcard2Label
             };
             localStorage.setItem('powerRankSettings', JSON.stringify(settings));
         }
@@ -638,6 +364,11 @@
                 isInFootprint = settings.isInFootprint ?? true;
                 showContributions = settings.showContributions ?? false;
 
+                // NEW: restore wildcard-2 selection
+                wildcard2Group = settings.wildcard2Group ?? 'group1';
+                wildcard2Label = settings.wildcard2Label ?? 'CRU/FN';
+                $('#wildcard-2-label').text(wildcard2Label);
+
                 // Apply footprint display
                 if (isInFootprint) {
                     $('#scale-point-text').text('IN FOOT-PRINT');
@@ -655,6 +386,9 @@
                     $('.contribution').addClass('hidden');
                     $('#toggle-contribution').text('Show Contribution');
                 }
+            } else {
+                // ensure defaults appear on first load
+                $('#wildcard-2-label').text(wildcard2Label);
             }
         }
 
@@ -677,13 +411,14 @@
             $('.contribution').addClass('hidden');
             $('#toggle-contribution').text('Show Contribution');
 
-            saveSettings(); // Ensure settings are also reset
+            // Reset wildcard-2 to default (CRU/FN -> group1)
+            setWildcard2('group1', 'CRU/FN', false);
+
+            saveSettings();
             updatePowerRank();
         }
 
-        function centeredText(text) {
-            return `<div style="text-align: center;">${text}</div>`;
-        }
+        function centeredText(text) { return `<div style="text-align: center;">${text}</div>`; }
 
         function showToast(message, persistent = false) {
             const toast = $('#toast');
@@ -695,139 +430,133 @@
             } else {
                 $('#toast-close').hide();
                 clearTimeout(toastTimer);
-                toastTimer = setTimeout(() => {
-                    toast.removeClass('show');
-                }, 2000);
+                toastTimer = setTimeout(() => { toast.removeClass('show'); }, 2000);
             }
         }
 
         let toastTimer;
-
         $(document).on('click', '#toast-close', function() {
             $('#toast').removeClass('show');
             clearTimeout(toastTimer);
         });
 
+        // NEW: helper to set wildcard-2 option
+        function setWildcard2(groupKey, labelText, announce = true) {
+            wildcard2Group = groupKey;
+            wildcard2Label = labelText;
+            $('#wildcard-2-label').text(labelText);
+            saveSettings();
+            updatePowerRank();
+            if (announce) showToast(centeredText(`2nd Wildcard set to <strong>${labelText}</strong>.`));
+        }
 
 $(document).ready(function() {
-            
     loadSettings();
 
-    // Click event for the hamburger menu
+    // Left slider toggle
     $('#hamburger-menu').click(function(event) {
         const sliderMenu = $('#slider-menu');
-        if (sliderMenu.css('left') === '0px') {
-            sliderMenu.css('left', '-250px'); // Hide the menu
-        } else {
-            sliderMenu.css('left', '0'); // Show the menu
-        }
-        event.stopPropagation(); // Prevent the click from bubbling up to the document
+        if (sliderMenu.css('left') === '0px') sliderMenu.css('left', '-250px');
+        else sliderMenu.css('left', '0');
+        event.stopPropagation();
     });
 
-    // Click event for the settings icon
+    // Right slider toggle
     $('#setting-icon').click(function(event) {
         const sliderMenuRight = $('#slider-menu-right');
-        if (sliderMenuRight.css('right') === '0px') {
-            sliderMenuRight.css('right', '-250px'); // Hide the menu
-        } else {
-            sliderMenuRight.css('right', '0'); // Show the menu
-        }
-        event.stopPropagation(); // Prevent the click from bubbling up to the document
+        if (sliderMenuRight.css('right') === '0px') sliderMenuRight.css('right', '-250px');
+        else sliderMenuRight.css('right', '0');
+        event.stopPropagation();
     });
 
-    // Click event for the document to hide the slider menu when clicking outside
-    $(document).click(function(event) {
+    // Click outside to close sliders
+    $(document).click(function() {
         const sliderMenu = $('#slider-menu');
         const sliderMenuRight = $('#slider-menu-right');
-
-        // Hide the left slider menu if it's open
-        if (sliderMenu.css('left') === '0px') {
-            sliderMenu.css('left', '-250px'); // Hide the menu
-        }
-
-        // Hide the right slider menu if it's open
-        if (sliderMenuRight.css('right') === '0px') {
-            sliderMenuRight.css('right', '-250px'); // Hide the menu
-        }
+        if (sliderMenu.css('left') === '0px') sliderMenu.css('left', '-250px');
+        if (sliderMenuRight.css('right') === '0px') sliderMenuRight.css('right', '-250px');
     });
 
+    $('#toggle-contribution').click(function () {
+        showContributions = !showContributions;
+        if (showContributions) {
+            $('.contribution').removeClass('hidden');
+            $(this).text('Hide Contribution');
+            showToast('Metric contribution points are now visible.');
+        } else {
+            $('.contribution').addClass('hidden');
+            $(this).text('Show Contribution');
+            showToast('Metric contribution points are now hidden.');
+        }
+        saveSettings();
+    });
 
+    $('#if-button').click(function(event) {
+        isInFootprint = true;
+        $('#scale-point-text').text('IN FOOT PRINT');
+        $('#internet-container').show();
+        showToast(centeredText('In Footprint scale selected.'));
+        updatePowerRank();
+        event.stopPropagation();
+        saveSettings();
+    });
 
-                $('#toggle-contribution').click(function () {
-                showContributions = !showContributions;
-                if (showContributions) {
-                    $('.contribution').removeClass('hidden');
-                    $(this).text('Hide Contribution');
-                    showToast('Metric contribution points are now visible.');
-                } else {
-                    $('.contribution').addClass('hidden');
-                    $(this).text('Show Contribution');
-                    showToast('Metric contribution points are now hidden.');
-                }
-                saveSettings(); // ✅ Make sure to save after toggling
-            });
+    $('#oof-button').click(function(event) {
+        isInFootprint = false;
+        $('#scale-point-text').text('OUT OF FOOTPRINT');
+        $('#internet-container').hide();
+        showToast(centeredText('Out of Footprint scale selected.'));
+        updatePowerRank();
+        event.stopPropagation();
+        saveSettings();
+    });
 
-            $('#if-button').click(function(event) {
-                isInFootprint = true;
-                $('#scale-point-text').text('IN FOOT PRINT');
-                $('#internet-container').show();
-                showToast(centeredText('In Footprint scale selected.'));
-                updatePowerRank();
-                event.stopPropagation();
-                saveSettings(); // ✅ Make sure to save after toggling
-            });
+    // NEW: wildcard-2 selectors
+    $('#wildcard2-crufn').click(() => setWildcard2('group1', 'CRU/FN'));
+    $('#wildcard2-fiber').click(() => setWildcard2('FiberCR', 'Fiber CR'));
+    $('#wildcard2-aia').click(() => setWildcard2('AIACR', 'AIA CR'));
 
-            $('#oof-button').click(function(event) {
-                isInFootprint = false;
-                $('#scale-point-text').text('OUT OF FOOTPRINT');
-                $('#internet-container').hide();
-                showToast(centeredText('Out of Footprint scale selected.'));
-                updatePowerRank();
-                event.stopPropagation();
-                saveSettings(); // ✅ Make sure to save after toggling
-            });
+    $('.input-field').on('input', function() {
+        updatePowerRank();
+        saveInputs();
+        saveSettings();
+    });
+    loadInputs();
 
-            $('.input-field').on('input', function() {
-                updatePowerRank();
-                saveInputs();
-                saveSettings(); // ✅ Ensures current state is preserved even if the tab closes
-            });
-            loadInputs();
+    const isReturningUser = localStorage.getItem('hasVisitedBefore') === 'true';
+    if (!isReturningUser) {
+        showToast(
+            `<h2 style="text-align: center; margin-bottom: 10px;">Welcome to the Power Rank Calculator!</h2>
+            <p style="text-align: center;"><strong>What's new on this update?</strong></p>
+            <ul style="padding-left: 50px; margin: 10px 0; text-align: left;">
+                <li>⭐ A total of 10 Metrics evaluated</li>
+                <li>🚀 Weighted Metrics & Footprint Options</li>
+                <li>📊 New Point Scale & FAQ Pages</li>
+                <li>✅ Your progress and settings are saved!</li>
+                <li>👀 More updates coming soon...</li>
+            </ul>
+            <p style="text-align: center;"><strong>Get started by entering your metrics!</strong></p>`,
+            true
+        );
+        markReturningUser();
+    } else {
+        showToast(
+            `<h2 style="text-align: center;">Welcome back! 👋</h2>
+            <p>Your previous inputs and settings have been loaded</p>`,
+            true
+        );
+    }
 
-            const isReturningUser = localStorage.getItem('hasVisitedBefore') === 'true';
+    updatePowerRank();
 
-            if (!isReturningUser) {
-                showToast(
-                    `<h2 style="text-align: center; margin-bottom: 10px;">Welcome to the Power Rank Calculator!</h2>
-                    <p style="text-align: center;"><strong>What's new on this update?</strong></p>
-                    <ul style="padding-left: 50px; margin: 10px 0; text-align: left;">
-                        <li>⭐ A total of 10 Metrics evaluated</li>
-                        <li>🚀 Weighted Metrics & Footprint Options</li>
-                        <li>📊 New Point Scale & FAQ Pages</li>
-                        <li>✅ Your progress and settings are saved!</li>
-                        <li>👀 More updates coming soon...</li>
-                    </ul>
-                    <p style="text-align: center;"><strong>Get started by entering your metrics!</strong></p>`,
-                    true
-                );
-                markReturningUser();
-            } else {
-                showToast(
-                    `<h2 style="text-align: center;">Welcome back! 👋</h2>
-                    <p>Your previous inputs and settings have been loaded</p>`,
-                    true
-                );
-            }
+    $('#reset-button').click(function(event) {
+        resetCalculator();
+        showToast(centeredText('Calculator has been reset.'));
+        event.stopPropagation();
+    });
+});
 
-            updatePowerRank();
-
-            $('#reset-button').click(function(event) {
-                resetCalculator();
-                showToast(centeredText('Calculator has been reset.'));
-                event.stopPropagation();
-            });
-        });
-
+        // Base tooltip copy (dynamic override applied for wildcard-2 below)
         const tooltips = {
             'opps': '50% minimum to receive points',
             'ppvga': '50% minimum to receive points',
@@ -839,25 +568,31 @@ $(document).ready(function() {
             'next-up': '60% minimum to receive points',
             'csat': '80% minimum to receive points',
             'wildcard-1': '50% minimum to receive points',
-            'wildcard-2': '50% minimum to receive points'
+            // wildcard-2 will be computed dynamically
         };
 
         $('.input-field').focus(function () {
             const inputId = $(this).attr('id');
-            const tooltipText = tooltips[inputId];
+            let tooltipText = tooltips[inputId];
 
-            if (!tooltipText) return; // Exit if no tooltip defined
+            // NEW: dynamic minimum for wildcard-2
+            if (inputId === 'wildcard-2') {
+                if (wildcard2Group === 'FiberCR') tooltipText = '15% minimum to receive points';
+                else if (wildcard2Group === 'AIACR') tooltipText = '5% minimum to receive points';
+                else tooltipText = '50% minimum to receive points';
+            }
+
+            if (!tooltipText) return;
 
             const tooltip = $('#tooltip');
-            const weight = (isInFootprint ? weightsIF : weightsOOF)[inputId] || 0;
+            const active = getActiveScale();
+            const wx = (active.weights[inputId]) || 0;
 
-            tooltip.html(`${tooltipText}<br><strong>Weight: ${weight}%</strong>`);
+            tooltip.html(`${tooltipText}<br><strong>Weight: ${wx}%</strong>`);
 
-            // Calculate the position
             const windowWidth = $(window).width();
             const tooltipWidth = tooltip.outerWidth();
             const inputOffset = $(this).offset();
-            const inputHeight = $(this).outerHeight();
 
             const tooltipTop = inputOffset.top - tooltip.outerHeight() - 10;
 
@@ -869,61 +604,6 @@ $(document).ready(function() {
         }).blur(function () {
             $('#tooltip').hide();
         });
-
-        // 1st Scale Point - opps, ppvga, accessories, wildcard1, wildcard2
-        function getScalePointGroup1(number) {
-            if (number >= 0 && number <= 49) return 0;
-            if (number >= 50 && number <= 59) return 5;
-            if (number >= 60 && number <= 69) return 6;
-            if (number >= 70 && number <= 79) return 7;
-            if (number >= 80 && number <= 89) return 8;
-            if (number >= 90 && number <= 99) return 9;
-            if (number >= 100) return 10;
-            return 0;
-        }
-
-        // 2nd Scale Point - internet
-        function getScalePointGroup2(number) {
-            if (number >= 0 && number <= 59) return 0;
-            if (number >= 60 && number <= 69) return 6;
-            if (number >= 70 && number <= 79) return 7;
-            if (number >= 80 && number <= 89) return 8;
-            if (number >= 90 && number <= 99) return 9;
-            if (number >= 100) return 10;
-            return 0;
-        }
-
-        // 3rd Scale Point - protection, next up
-        function getScalePointGroup3(number) {
-            if (number >= 0 && number <= 59) return 0;
-            if (number >= 60 && number <= 64) return 6;
-            if (number >= 65 && number <= 69) return 7;
-            if (number >= 70 && number <= 74) return 8;
-            if (number >= 75 && number <= 79) return 9;
-            if (number >= 80) return 10;
-            return 0;
-        }
-
-        // 4th Scale Point - rate plan
-        function getScalePointGroup4(number) {
-            if (number >= 0 && number <= 64) return 0;
-            if (number >= 62 && number <= 68) return 6;
-            if (number >= 67 && number <= 71) return 7;
-            if (number >= 72 && number <= 76) return 8;
-            if (number >= 77 && number <= 81) return 9;
-            if (number >= 82) return 10;
-            return 0;
-        }
-
-        // 5th Scale Point - csat
-        function getScalePointGroup5(number) {
-            if (number >= 0 && number <= 79) return 0;
-            if (number >= 80 && number <= 84) return 7;
-            if (number >= 85 && number <= 89) return 8;
-            if (number >= 90 && number <= 94) return 9;
-            if (number >= 95) return 10;
-            return 0;
-        }
 
         function getPointsNeededForNextPowerRank(totalPoints) {
             if (totalPoints >= 5 && totalPoints <= 7) return 8 - totalPoints;
@@ -939,128 +619,87 @@ $(document).ready(function() {
             return 0;
         }
 
-        const weightsIF = {
-            'opps': 20,
-            'ppvga': 20,
-            'internet': 20,
-            'accessories': 10,
-            'protection': 5,
-            'rate-plan': 5,
-            'next-up': 5,
-            'csat': 5,
-            'wildcard-1': 5,
-            'wildcard-2': 5
-        };
+        let currentRank = 0;
 
-        const weightsOOF = {
-            'opps': 25,
-            'ppvga': 25,
-            'accessories': 20,
-            'protection': 5,
-            'rate-plan': 5,
-            'next-up': 5,
-            'csat': 5,
-            'wildcard-1': 5,
-            'wildcard-2': 5
-        };
-
-        
-let currentRank = 0;
-
-function animatePowerRank(target) {
-    $({ countNum: currentRank }).animate({ countNum: target }, {
-        duration: 500,
-        easing: 'swing',
-        step: function() {
-            $('#power-rank').text('Power Rank: ' + this.countNum.toFixed(1));
-        },
-        complete: function() {
-            $('#power-rank').text('Power Rank: ' + target.toFixed(1));
-            currentRank = target;
-        }
-    });
-}
-
-
-function updatePowerRank() {
-        let values = {
-            'opps': parseFloat($('#opps').val()) || 0,
-            'ppvga': parseFloat($('#ppvga').val()) || 0,
-            'accessories': parseFloat($('#accessories').val()) || 0,
-            'protection': parseFloat($('#protection').val()) || 0,
-            'rate-plan': parseFloat($('#rate-plan').val()) || 0,
-            'next-up': parseFloat($('#next-up').val()) || 0,
-            'csat': parseFloat($('#csat').val()) || 0,
-            'wildcard-1': parseFloat($('#wildcard-1').val()) || 0,
-            'wildcard-2': parseFloat($('#wildcard-2').val()) || 0
-        };
-
-        const htpValue = parseFloat($('#htp').val()) || 0;
-
-        if (htpValue < 5.5) {
-            $('#htp-warning').removeClass('hidden');
-        } else {
-            $('#htp-warning').addClass('hidden');
+        function animatePowerRank(target) {
+            $({ countNum: currentRank }).animate({ countNum: target }, {
+                duration: 500,
+                easing: 'swing',
+                step: function() {
+                    $('#power-rank').text('Power Rank: ' + this.countNum.toFixed(1));
+                },
+                complete: function() {
+                    $('#power-rank').text('Power Rank: ' + target.toFixed(1));
+                    currentRank = target;
+                }
+            });
         }
 
-        let weights = isInFootprint ? weightsIF : weightsOOF;
-        if (isInFootprint) {
-            values['internet'] = parseFloat($('#internet').val()) || 0;
+        function updatePowerRank() {
+            let values = {
+                'opps': parseFloat($('#opps').val()) || 0,
+                'ppvga': parseFloat($('#ppvga').val()) || 0,
+                'accessories': parseFloat($('#accessories').val()) || 0,
+                'protection': parseFloat($('#protection').val()) || 0,
+                'rate-plan': parseFloat($('#rate-plan').val()) || 0,
+                'next-up': parseFloat($('#next-up').val()) || 0,
+                'csat': parseFloat($('#csat').val()) || 0,
+                'wildcard-1': parseFloat($('#wildcard-1').val()) || 0,
+                'wildcard-2': parseFloat($('#wildcard-2').val()) || 0
+            };
+
+            const htpValue = parseFloat($('#htp').val()) || 0;
+
+            if (htpValue < (PR_CONFIG.rules?.protectionHalfIfHtpBelow ?? 5.5)) {
+                $('#htp-warning').removeClass('hidden');
+            } else {
+                $('#htp-warning').addClass('hidden');
+            }
+
+            let active = getActiveScale();
+
+            // NEW: dynamically route wildcard-2 to the chosen threshold group
+            // (do not mutate config globally—override mapping on the fly)
+            const originalGroup = active.metricToGroup['wildcard-2'];
+            active.metricToGroup['wildcard-2'] = wildcard2Group;
+
+            let weights = active.weights;
+            if (isInFootprint) values['internet'] = parseFloat($('#internet').val()) || 0;
+
+            let totalPoints = 0;
+            let totalWeight = 0;
+
+            Object.keys(values).forEach(metricId => {
+                let val = values[metricId];
+                let pts = pointsFor(metricId, val, active);
+
+                // Apply 50% reduction if HTP below rule for protection
+                if (metricId === 'protection' && htpValue < (PR_CONFIG.rules?.protectionHalfIfHtpBelow ?? 5.5)) {
+                    pts = Math.floor(pts / 2);
+                }
+
+                let weight = weights[metricId] || 0;
+                let contribution = ((pts * weight) / 100).toFixed(2);
+
+                totalPoints += (pts * weight);
+                totalWeight += weight;
+
+                let pointsText = `${pts} Points`;
+                if (metricId === 'protection' && htpValue < (PR_CONFIG.rules?.protectionHalfIfHtpBelow ?? 5.5)) {
+                    pointsText = `<span style="color: #e74c3c;">${pts} Points</span>`;
+                }
+
+                $(`#${metricId}-points`).html(`${pointsText} <span class="contribution ${showContributions ? '' : 'hidden'}">★ ${contribution}</span>`);
+            });
+
+            // restore original mapping to avoid side-effects
+            active.metricToGroup['wildcard-2'] = originalGroup;
+
+            const raw = totalPoints / totalWeight;
+            const powerRank = Math.floor(raw * 10) / 10; // truncate to 1 decimal
+            animatePowerRank(powerRank);
+            $('.floating-container').css('background-color', getColor(powerRank));
         }
-
-        let totalPoints = 0;
-        let totalWeight = 0;
-
-        Object.keys(values).forEach(metricId => {
-            let val = values[metricId];
-            let points = 0;
-
-            if (['opps', 'ppvga', 'accessories', 'wildcard-1', 'wildcard-2'].includes(metricId)) {
-                points = getScalePointGroup1(val);
-            } else if (metricId === 'internet') {
-                points = getScalePointGroup2(val);
-            } else if (['protection', 'next-up'].includes(metricId)) {
-                points = getScalePointGroup3(val);
-            } else if (metricId === 'rate-plan') {
-                points = getScalePointGroup4(val);
-            } else if (metricId === 'csat') {
-                points = getScalePointGroup5(val);
-            }
-
-            // Apply 50% reduction if HTP < 5.5 and metric is protection
-            if (metricId === 'protection' && htpValue < 5.5) {
-                points = Math.floor(points / 2);
-            }
-
-            let weight = weights[metricId];
-            let contribution = ((points * weight) / 100).toFixed(2);
-
-            totalPoints += (points * weight);
-            totalWeight += weight;
-
-            let pointTextClass = '';
-
-            let pointsText = `${points} Points`;
-
-            if (metricId === 'protection' && htpValue < 5.5) {
-                pointsText = `<span style="color: #e74c3c;">${points} Points</span>`;
-            }
-
-            $(`#${metricId}-points`).html(`${pointsText} <span class="contribution ${showContributions ? '' : 'hidden'}">★ ${contribution}</span>`);
-        });
-
-        // …after you calculate totalPoints and totalWeight…
-        const raw = totalPoints / totalWeight;
-        
-        // always round *down* to the nearest tenth:
-        const powerRank = Math.floor(raw * 10) / 10;
-        
-        // now animate using that truncated value:
-        animatePowerRank(powerRank);
-
-        $('.floating-container').css('background-color', getColor(powerRank));
-    }
-
 
         function getColor(powerRank) {
             if (powerRank < 2) return '#FF3F3F';
@@ -1074,7 +713,6 @@ function updatePowerRank() {
             if (powerRank < 10) return '#8BD99A';
             return '#53C587';
         }
-
     </script>
 </body>
 </html>
