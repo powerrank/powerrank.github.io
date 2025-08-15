@@ -1,0 +1,109 @@
+{
+  "version": "2.1",
+  "footprints": {
+    "IF": {
+      "weights": {
+        "opps": 20,
+        "ppvga": 20,
+        "internet": 20,
+        "accessories": 10,
+        "protection": 5,
+        "rate-plan": 5,
+        "next-up": 5,
+        "csat": 5,
+        "wildcard-1": 5,
+        "wildcard-2": 5
+      },
+      "thresholds": {
+        "group1": [
+          [0, 49, 0],
+          [50, 59, 5],
+          [60, 69, 6],
+          [70, 79, 7],
+          [80, 89, 8],
+          [90, 99, 9],
+          [100, 999, 10]
+        ],
+        "group2": [
+          [0, 59, 0],
+          [60, 69, 6],
+          [70, 79, 7],
+          [80, 89, 8],
+          [90, 99, 9],
+          [100, 999, 10]
+        ],
+        "group3": [
+          [0, 59, 0],
+          [60, 64, 6],
+          [65, 69, 7],
+          [70, 74, 8],
+          [75, 79, 9],
+          [80, 999, 10]
+        ],
+        "group4": [
+          [0, 64, 0],
+          [62, 68, 6],
+          [67, 71, 7],
+          [72, 76, 8],
+          [77, 81, 9],
+          [82, 999, 10]
+        ],
+        "group5": [
+          [0, 79, 0],
+          [80, 84, 7],
+          [85, 89, 8],
+          [90, 94, 9],
+          [95, 999, 10]
+        ],
+        "FiberCR": [
+          [0, 14.9, 0],
+          [15, 15.9, 5],
+          [16, 16.9, 6],
+          [17, 17.9, 7],
+          [18, 18.9, 8],
+          [19, 19.9, 9],
+          [20, 999, 10]
+        ],
+        "AIACR": [
+          [0, 4.9, 0],
+          [5, 5.9, 5],
+          [6, 6.9, 6],
+          [7, 7.9, 7],
+          [8, 8.9, 8],
+          [9, 9.9, 9],
+          [10, 999, 10]
+        ]
+      },
+      "metricToGroup": {
+        "opps": "group1",
+        "ppvga": "group1",
+        "accessories": "group1",
+        "wildcard-1": "group1",
+        "wildcard-2": "group1",
+        "internet": "group2",
+        "protection": "group3",
+        "next-up": "group3",
+        "rate-plan": "group4",
+        "csat": "group5"
+      }
+    },
+    "OOF": {
+      "weights": {
+        "opps": 25,
+        "ppvga": 25,
+        "accessories": 20,
+        "protection": 5,
+        "rate-plan": 5,
+        "next-up": 5,
+        "csat": 5,
+        "wildcard-1": 5,
+        "wildcard-2": 5
+      },
+      "thresholds": "@same-as-IF",
+      "metricToGroup": "@same-as-IF"
+    }
+  },
+  "rules": {
+    "protectionHalfIfHtpBelow": 6
+  }
+}
