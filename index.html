@@ -403,20 +403,35 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function resetCalculator() {
-            $('.input-field').val('');
-            localStorage.removeItem('powerRankInputs');
-
-            // Reset contribution visibility
-            showContributions = false;
-            $('.contribution').addClass('hidden');
-            $('#toggle-contribution').text('Show Contribution');
-
-            // Reset wildcard-2 to default (CRU/FN -> group1)
-            setWildcard2('sigrate', 'Sig. Attach Rate', false);
-
-            saveSettings();
-            updatePowerRank();
+          // 1) Clear all inputs
+          $('.input-field').each(function () { this.value = ''; });
+          localStorage.removeItem('powerRankInputs');
+        
+          // 2) Clear warnings / UI badges
+          $('#htp-warning').addClass('hidden');
+        
+          // 3) Reset footprint to IF (and show Internet)
+          isInFootprint = true;
+          $('#scale-point-text').text('IN FOOT PRINT'); // keep this exact string consistently
+          $('#internet-container').show();
+        
+          // 4) Reset contributions visibility + toggle label
+          showContributions = false;
+          $('.contribution').addClass('hidden');
+          $('#toggle-contribution').text('Show Contribution');
+        
+          // 5) Reset Wildcard-2 to Sig. Attach Rate (group: sigrate)
+          //    Safe even with the right-side options commented out.
+          setWildcard2('sigrate', 'Sig. Attach Rate', false);
+        
+          // 6) Persist the clean state
+          saveSettings();
+        
+          // 7) Reset the animated counter baseline and recompute PR
+          currentRank = 0;
+          updatePowerRank();
         }
+
 
         function centeredText(text) { return `<div style="text-align: center;">${text}</div>`; }
 
@@ -550,11 +565,12 @@ $(document).ready(function() {
     updatePowerRank();
 
     $('#reset-button').click(function(event) {
-        resetCalculator();
-        showToast(centeredText('Calculator has been reset.'));
-        event.stopPropagation();
-    });
+  event.preventDefault();       // avoid any default button behavior
+  event.stopPropagation();      // keep the panel from closing first
+  resetCalculator();
+  showToast(centeredText('Calculator has been reset.'));
 });
+
 
         // Base tooltip copy (dynamic override applied for wildcard-2 below)
         const tooltips = {
@@ -716,6 +732,7 @@ $(document).ready(function() {
     </script>
 </body>
 </html>
+
 
 
 
