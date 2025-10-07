@@ -277,7 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <span id="wildcard-1-recommendation" class="recommendation"></span>
         </div>
 
-        <label for="wildcard-2" id="wildcard-2-label">CRU/FN</label>
+        <label for="wildcard-2" id="wildcard-2-label">Sig. Attach Rate</label>
         <div class="input-wrapper">
             <input type="tel" id="wildcard-2" class="input-field" oninput="updatePowerRank()" min="1" max="100">
             <span class="percentage">%</span>
@@ -365,8 +365,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 showContributions = settings.showContributions ?? false;
 
                 // NEW: restore wildcard-2 selection
-                wildcard2Group = settings.wildcard2Group ?? 'group1';
-                wildcard2Label = settings.wildcard2Label ?? 'CRU/FN';
+                wildcard2Group = settings.wildcard2Group ?? 'sigrate';
+                wildcard2Label = settings.wildcard2Label ?? 'Sig. Attach Rate';
                 $('#wildcard-2-label').text(wildcard2Label);
 
                 // Apply footprint display
@@ -412,7 +412,7 @@ document.addEventListener('DOMContentLoaded', () => {
             $('#toggle-contribution').text('Show Contribution');
 
             // Reset wildcard-2 to default (CRU/FN -> group1)
-            setWildcard2('group1', 'CRU/FN', false);
+            setWildcard2('sigrate', 'Sig. Attach Rate', false);
 
             saveSettings();
             updatePowerRank();
@@ -577,9 +577,9 @@ $(document).ready(function() {
 
             // NEW: dynamic minimum for wildcard-2
             if (inputId === 'wildcard-2') {
-                if (wildcard2Group === 'FiberCR') tooltipText = '15% minimum to receive points';
-                else if (wildcard2Group === 'AIACR') tooltipText = '5% minimum to receive points';
-                else tooltipText = '50% minimum to receive points';
+                if (wildcard2Group === 'sigrate') tooltipText = '55% minimum to receive points';
+                //else if (wildcard2Group === 'AIACR') tooltipText = '5% minimum to receive points';
+                else tooltipText = '55% minimum to receive points';
             }
 
             if (!tooltipText) return;
@@ -716,5 +716,6 @@ $(document).ready(function() {
     </script>
 </body>
 </html>
+
 
 
