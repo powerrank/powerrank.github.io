@@ -308,10 +308,10 @@ document.addEventListener('DOMContentLoaded', () => {
         <button id="if-button">IF</button>
         <button id="oof-button">OOF</button>
 
-        <h4 style="text-align: center; margin-top: 16px;">Pick 2nd Wildcard</h4>
+        <!--<h4 style="text-align: center; margin-top: 16px;">Pick 2nd Wildcard</h4>
         <button id="wildcard2-crufn">CRU/FN</button>
         <button id="wildcard2-fiber">Fiber CR</button>
-        <button id="wildcard2-aia">AIA CR</button>
+        <button id="wildcard2-aia">AIA CR</button> -->
 
         <h4 style="text-align: center; margin-top: 16px;">Additional Options</h4>
         <button id="toggle-contribution">Show Contribution</button>
@@ -330,8 +330,8 @@ document.addEventListener('DOMContentLoaded', () => {
         let showContributions = false;
 
         // NEW: Wildcard-2 selection state (defaults)
-        let wildcard2Group = 'group1';   // 'group1' | 'FiberCR' | 'AIACR'
-        let wildcard2Label = 'CRU/FN';   // UI label shown next to input
+        let wildcard2Group = 'sigrate';   // 'group1' | 'FiberCR' | 'AIACR'
+        let wildcard2Label = 'Sig. Attach Rate';   // UI label shown next to input
 
         const CURRENT_VERSION = '2.0';
 
@@ -716,6 +716,7 @@ $(document).ready(function() {
     </script>
 </body>
 </html>
+
 
 
 
