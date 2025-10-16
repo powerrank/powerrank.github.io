@@ -1,157 +1,192 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <meta name="description" content="Power Ranks Calculator is a sales performance tool that helps store leaders calculate their Power Rank by evaluating key metrics.">
-    <title>Power Rank Calculator</title>
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<script>
-/* ==== CONFIG ENGINE (no change) ==== */
-let PR_CONFIG = {};
+  <meta charset="UTF-8" />
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="description"
+        content="Power Ranks Calculator is a sales performance tool that helps store leaders calculate their Power Rank by evaluating key metrics." />
+  <title>Power Rank Calculator</title>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
-async function loadConfig() {
-  try {
-    const res = await fetch('config.json', { cache: 'no-store' });
-    if (res.ok) {
-      PR_CONFIG = await res.json();
-      localStorage.setItem('pr_config_cache', JSON.stringify(PR_CONFIG));
-    } else {
+  <script>
+  /* ==== CONFIG ENGINE (extended for wildcards) ==== */
+  let PR_CONFIG = {};
+
+  async function loadConfig() {
+    try {
+      const res = await fetch('config.json', { cache: 'no-store' });
+      if (res.ok) {
+        PR_CONFIG = await res.json();
+        localStorage.setItem('pr_config_cache', JSON.stringify(PR_CONFIG));
+      } else {
+        const cached = localStorage.getItem('pr_config_cache');
+        if (cached) PR_CONFIG = JSON.parse(cached);
+      }
+    } catch (e) {
       const cached = localStorage.getItem('pr_config_cache');
       if (cached) PR_CONFIG = JSON.parse(cached);
     }
-  } catch (e) {
-    const cached = localStorage.getItem('pr_config_cache');
-    if (cached) PR_CONFIG = JSON.parse(cached);
   }
-}
 
-function getActiveScale() {
-  const fp = (typeof isInFootprint !== 'undefined' && isInFootprint) ? 'IF' : 'OOF';
-  const base = PR_CONFIG.footprints;
-  if (base.OOF.thresholds === '@same-as-IF') base.OOF.thresholds = base.IF.thresholds;
-  if (base.OOF.metricToGroup === '@same-as-IF') base.OOF.metricToGroup = base.IF.metricToGroup;
-  return base[fp];
-}
+  function clone(obj){ return JSON.parse(JSON.stringify(obj)); }
 
-function pointsFor(metricId, value, activeCfg) {
-  const grp = activeCfg.metricToGroup[metricId];
-  const table = activeCfg.thresholds[grp] || [];
-  for (let i = 0; i < table.length; i++) {
-    const [lo, hi, pts] = table[i];
-    if (value >= lo && value <= hi) return pts;
+  function getActiveScale() {
+    const fp = (typeof isInFootprint !== 'undefined' && isInFootprint) ? 'IF' : 'OOF';
+    const base = PR_CONFIG.footprints;
+
+    // Resolve @same-as-IF pointers safely without mutating original
+    const ifRef = base.IF;
+    const oofRef = base.OOF;
+
+    const resolved = { IF: clone(ifRef), OOF: clone(oofRef) };
+
+    // thresholds
+    if (resolved.OOF.thresholds === '@same-as-IF') {
+      resolved.OOF.thresholds = clone(resolved.IF.thresholds);
+    }
+    // metricToGroup
+    if (resolved.OOF.metricToGroup === '@same-as-IF') {
+      resolved.OOF.metricToGroup = clone(resolved.IF.metricToGroup);
+    }
+    // wildcards
+    if (resolved.OOF.wildcards === '@same-as-IF') {
+      resolved.OOF.wildcards = clone(resolved.IF.wildcards);
+    }
+
+    return resolved[fp];
   }
-  return table.length ? table[table.length - 1][2] : 0;
-}
 
-document.addEventListener('DOMContentLoaded', () => {
-  loadConfig().then(() => { try { if (typeof updatePowerRank === 'function') updatePowerRank(); } catch(_){} });
-});
-/* ==== END CONFIG ENGINE ==== */
-</script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 5% 2%;
-            background-color: #f9f9f9;
-            padding-top: 120px;
-            padding-bottom: 150px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: auto;
-            position: relative;
-            overflow-x: hidden;
-            touch-action: manipulation;
-        }
-        h1 { text-align: center; color: #333; margin-bottom: 10px; }
-        h3 { text-align: center; color: #333; margin-bottom: 1px; }
-        .input-container { width: 50%; max-width: 200px; margin: 0 auto; }
-        .input-field {
-            appearance: none; -webkit-appearance: none; -moz-appearance: none;
-            background-color: white; cursor: pointer; width: 40%; margin: 0;
-            min-height: 20px; padding: 10px; border: 2px solid #ccc; border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: border-color .3s, box-shadow .3s;
-            font-size: 16px; touch-action: manipulation;
-        }
-        .input-field:focus { border-color: #007BFF; box-shadow: 0 0 5px rgba(0,123,255,.5); outline: none; }
-        .input-wrapper { display: flex; align-items: center; margin-bottom: 10px; }
-        .htp-label { font-size: 13px; color: #555; }
-        .small-input { width: 45px; padding: 8px; }
-        .htp-input { width: 55px; padding: 6px 8px; font-size: 14px; }
-        .reduced-points { color: #c0392b !important; font-weight: bold; }
-        .htp-warning, .reduction-note { margin-left: 8px; font-size: 12px; color: #e74c3c; font-style: italic; }
-        label { margin-bottom: 5px; display: block; color: #555; }
-        .points { margin-left: 10px; width: 100px; font-weight: bold; color: #007BFF; }
-        .contribution { margin-left: 5px; font-weight: bold; color: #28a745; }
-        .percentage { margin-left: 5px; font-weight: bold; color: #333; }
-        .recommendation { margin-left: 10px; font-weight: bold; color: #FF5733; }
-        .tooltip {
-            position: absolute; background-color: #333; color: white; padding: 8px 12px; border-radius: 5px;
-            font-size: 14px; z-index: 1000; opacity: .95; pointer-events: none; max-width: 280px;
-            line-height: 1.4; text-align: center;
-        }
-        .floating-container {
-            position: fixed; top: 0; left: 0; right: 0; background-color: #007BFF; color: white;
-            padding: 10px; text-align: center; box-shadow: 0 -2px 10px rgba(0,0,0,.2); z-index: 1;
-        }
-        .result { font-size: 24px; font-weight: bold; margin-top: 10px; color: #333; }
+  function pointsFor(metricId, value, activeCfg) {
+    const grp = activeCfg.metricToGroup[metricId];
+    const table = activeCfg.thresholds[grp] || [];
+    for (let i = 0; i < table.length; i++) {
+      const [lo, hi, pts] = table[i];
+      if (value >= lo && value <= hi) return pts;
+    }
+    return table.length ? table[table.length - 1][2] : 0;
+  }
 
-        .hamburger-container {
-            position: fixed; top: 20px; left: 20px; background-color: rgba(255,255,255,.8);
-            border-radius: 10px; padding: 10px; box-shadow: 0 2px 5px rgba(0,0,0,.2); z-index: 2;
-        }
-        .hamburger-menu { cursor: pointer; }
-        .hamburger-menu .bar { width: 30px; height: 3px; background-color: #333; margin: 5px 0; transition: .4s; }
-        .hamburger-menu .bar:nth-child(2) { width: 20px; }
+  // Compute the first boundary where points > 0 as a "minimum to receive points"
+  function minToScore(activeCfg, groupKey) {
+    const table = activeCfg.thresholds[groupKey] || [];
+    for (let i = 0; i < table.length; i++) {
+      const [lo, hi, pts] = table[i];
+      if (pts > 0) return lo;
+    }
+    return null;
+  }
 
-        @media (max-width: 600px) {
-            .input-field { font-size: 16px; }
-            h1 { font-size: 24px; }
-            .floating-container { padding: 5px; }
-            .toast { max-width: 400px; }
-        }
+  document.addEventListener('DOMContentLoaded', () => {
+    loadConfig().then(() => {
+      try {
+        // after config loads, build UI bits that depend on it
+        setupWildcards();
+        if (typeof updatePowerRank === 'function') updatePowerRank();
+      } catch (_) {}
+    });
+  });
+  /* ==== END CONFIG ENGINE ==== */
+  </script>
 
-        .slider-menu {
-            position: fixed; top: 0; left: -250px; width: 150px; height: 100%;
-            background-color: #007BFF; color: white; transition: left .3s ease; z-index: 2; padding: 20px;
-        }
-        .slider-menu-title { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); font-size: 20px; font-weight: bold; white-space: nowrap; }
-        .slider-menu h2 h3 { margin-top: 0; }
-        .slider-menu ul { list-style-type: none; margin-top: 40%; padding: 0; }
-        .slider-menu li { margin: 20px 0; }
-        .slider-menu a { color: white; text-decoration: none; font-size: 18px; }
-        .slider-menu a:hover { text-decoration: underline; }
-        .signature { position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%); font-size: 14px; color: #fff; text-align: center; }
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0; padding: 5% 2%;
+      background-color: #f9f9f9;
+      padding-top: 120px; padding-bottom: 150px;
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+      height: auto; position: relative; overflow-x: hidden;
+      touch-action: manipulation;
+    }
+    h1 { text-align: center; color: #333; margin-bottom: 10px; }
+    h3 { text-align: center; color: #333; margin-bottom: 1px; }
+    .input-container { width: 50%; max-width: 200px; margin: 0 auto; }
+    .input-field {
+      appearance: none; -webkit-appearance: none; -moz-appearance: none;
+      background-color: white; cursor: pointer; width: 40%; margin: 0;
+      min-height: 20px; padding: 10px; border: 2px solid #ccc; border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transition: border-color .3s, box-shadow .3s;
+      font-size: 16px; touch-action: manipulation;
+    }
+    .input-field:focus { border-color: #007BFF; box-shadow: 0 0 5px rgba(0,123,255,.5); outline: none; }
+    .input-wrapper { display: flex; align-items: center; margin-bottom: 10px; }
+    .htp-label { font-size: 13px; color: #555; }
+    .small-input { width: 45px; padding: 8px; }
+    .htp-input { width: 55px; padding: 6px 8px; font-size: 14px; }
+    .reduced-points { color: #c0392b !important; font-weight: bold; }
+    .htp-warning, .reduction-note { margin-left: 8px; font-size: 12px; color: #e74c3c; font-style: italic; }
+    label { margin-bottom: 5px; display: block; color: #555; }
+    .points { margin-left: 10px; width: 100px; font-weight: bold; color: #007BFF; }
+    .contribution { margin-left: 5px; font-weight: bold; color: #28a745; }
+    .percentage { margin-left: 5px; font-weight: bold; color: #333; }
+    .recommendation { margin-left: 10px; font-weight: bold; color: #FF5733; }
+    .tooltip {
+      position: absolute; background-color: #333; color: white; padding: 8px 12px; border-radius: 5px;
+      font-size: 14px; z-index: 1000; opacity: .95; pointer-events: none; max-width: 280px;
+      line-height: 1.4; text-align: center;
+    }
+    .floating-container {
+      position: fixed; top: 0; left: 0; right: 0; background-color: #007BFF; color: white;
+      padding: 10px; text-align: center; box-shadow: 0 -2px 10px rgba(0,0,0,.2); z-index: 1;
+    }
+    .result { font-size: 24px; font-weight: bold; margin-top: 10px; color: #333; }
 
-        .floating-button-container {
-            position: fixed; top: 20px; right: 20px; background-color: rgba(255,255,255,.8);
-            border-radius: 10px; padding: 10px; box-shadow: 0 2px 5px rgba(0,0,0,.2); z-index: 2;
-        }
-        .setting-icon { width: 30px; height: 30px; cursor: pointer; display: block; margin: 0 auto; }
-        .floating-button { cursor: pointer; }
-        .floating-button .bar { width: 30px; height: 3px; background-color: #333; margin: 5px 0; transition: .4s; }
+    .hamburger-container {
+      position: fixed; top: 20px; left: 20px; background-color: rgba(255,255,255,.8);
+      border-radius: 10px; padding: 10px; box-shadow: 0 2px 5px rgba(0,0,0,.2); z-index: 2;
+    }
+    .hamburger-menu { cursor: pointer; }
+    .hamburger-menu .bar { width: 30px; height: 3px; background-color: #333; margin: 5px 0; transition: .4s; }
+    .hamburger-menu .bar:nth-child(2) { width: 20px; }
 
-        .slider-menu-right {
-            position: fixed; top: 0; right: -250px; width: 200px; height: 100%;
-            background-color: #007BFF; color: white; transition: right .3s ease; z-index: 2; padding: 20px;
-        }
-        .slider-menu-right h2 { margin-top: 0; }
-        .slider-menu-right button {
-            background-color: #FF5733; color: white; border: none; padding: 10px; margin-bottom: 10px;
-            border-radius: 5px; cursor: pointer; width: 100%;
-        }
-        .slider-menu-right button:hover { background-color: #FF3F3F; }
+    @media (max-width: 600px) {
+      .input-field { font-size: 16px; }
+      h1 { font-size: 24px; }
+      .floating-container { padding: 5px; }
+      .toast { max-width: 400px; }
+    }
 
-        .confirmation-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: #000c19; color: white; padding: 10px 20px; border-radius: 5px; z-index: 1000; }
-        .popup-notification { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background-color: #2c4056; color: white; padding: 15px; border-radius: 5px; z-index: 1000; display: block; opacity: 0; transition: opacity 2s ease; }
-        .hidden { display: none; }
-    </style>
+    .slider-menu {
+      position: fixed; top: 0; left: -250px; width: 150px; height: 100%;
+      background-color: #007BFF; color: white; transition: left .3s ease; z-index: 2; padding: 20px;
+    }
+    .slider-menu-title { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); font-size: 20px; font-weight: bold; white-space: nowrap; }
+    .slider-menu h2 h3 { margin-top: 0; }
+    .slider-menu ul { list-style-type: none; margin-top: 40%; padding: 0; }
+    .slider-menu li { margin: 20px 0; }
+    .slider-menu a { color: white; text-decoration: none; font-size: 18px; }
+    .slider-menu a:hover { text-decoration: underline; }
+    .signature { position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%); font-size: 14px; color: #fff; text-align: center; }
 
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-<style>
+    .floating-button-container {
+      position: fixed; top: 20px; right: 20px; background-color: rgba(255,255,255,.8);
+      border-radius: 10px; padding: 10px; box-shadow: 0 2px 5px rgba(0,0,0,.2); z-index: 2;
+    }
+    .setting-icon { width: 30px; height: 30px; cursor: pointer; display: block; margin: 0 auto; }
+    .floating-button { cursor: pointer; }
+    .floating-button .bar { width: 30px; height: 3px; background-color: #333; margin: 5px 0; transition: .4s; }
+
+    .slider-menu-right {
+      position: fixed; top: 0; right: -250px; width: 200px; height: 100%;
+      background-color: #007BFF; color: white; transition: right .3s ease; z-index: 2; padding: 20px;
+    }
+    .slider-menu-right h2 { margin-top: 0; }
+    .slider-menu-right button {
+      background-color: #FF5733; color: white; border: none; padding: 10px; margin-bottom: 10px;
+      border-radius: 5px; cursor: pointer; width: 100%;
+    }
+    .slider-menu-right button:hover { background-color: #FF3F3F; }
+
+    .confirmation-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: #000c19; color: white; padding: 10px 20px; border-radius: 5px; z-index: 1000; }
+    .popup-notification { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background-color: #2c4056; color: white; padding: 15px; border-radius: 5px; z-index: 1000; display: block; opacity: 0; transition: opacity 2s ease; }
+    .hidden { display: none; }
+  </style>
+
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
     body { font-family: 'Poppins', sans-serif; }
     .input-field:focus { border-color: #0a84ff; box-shadow: 0 0 8px rgba(10,132,255,.6); transform: scale(1.02); transition: transform .2s ease, box-shadow .2s ease; }
     .floating-container { transition: background-color .5s ease; }
@@ -159,562 +194,675 @@ document.addEventListener('DOMContentLoaded', () => {
     .input-wrapper:hover { background-color: #eef6ff; }
     #hamburger-menu, #setting-icon { transition: transform .2s ease; }
     #hamburger-menu:hover, #setting-icon:hover { transform: scale(1.1); }
-</style>
+  </style>
 
-<style>
-.toast {
-    position: fixed; top: 20px; left: 50%; transform: translateX(-50%); min-width: 260px; max-width: 90vw;
-    padding: 16px 20px; background-color: #2c4056; color: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.2);
-    font-size: 16px; text-align: left; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity .5s ease;
-}
-.toast.show { opacity: 1; pointer-events: auto; }
-.toast-actions { margin-top: 12px; display: flex; justify-content: center; }
-.toast ul { margin: 10px 0; padding-left: 20px; }
-.toast ul li { margin-bottom: 5px; }
-.toast button { background-color: #FF5733; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-size: 14px; }
-.toast button:hover { background-color: #FF3F3F; }
-</style>
-
+  <style>
+    .toast {
+      position: fixed; top: 20px; left: 50%; transform: translateX(-50%); min-width: 260px; max-width: 90vw;
+      padding: 16px 20px; background-color: #2c4056; color: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.2);
+      font-size: 16px; text-align: left; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity .5s ease;
+    }
+    .toast.show { opacity: 1; pointer-events: auto; }
+    .toast-actions { margin-top: 12px; display: flex; justify-content: center; }
+    .toast ul { margin: 10px 0; padding-left: 20px; }
+    .toast ul li { margin-bottom: 5px; }
+    .toast button { background-color: #FF5733; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-size: 14px; }
+    .toast button:hover { background-color: #FF3F3F; }
+  </style>
 </head>
+
 <body>
-    <div class="hamburger-container">
-        <div class="hamburger-menu" id="hamburger-menu">
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
-        </div>
+  <div class="hamburger-container">
+    <div class="hamburger-menu" id="hamburger-menu">
+      <div class="bar"></div>
+      <div class="bar"></div>
+      <div class="bar"></div>
+    </div>
+  </div>
+
+  <div class="floating-button-container">
+    <img src="setting.png" alt="Settings" id="setting-icon" class="setting-icon">
+  </div>
+
+  <div class="floating-container">
+    <h2 id="power-rank">Power Rank: 0</h2>
+  </div>
+
+  <h3 id="selected-scale-point">Point Scale: <span id="scale-point-text" style="color: #007BFF;">IN FOOT PRINT</span></h3>
+  <h1>Power Rank Calculator</h1>
+
+  <div class="input-container">
+    <label for="opps">Opps to Goal:</label>
+    <div class="input-wrapper">
+      <input type="tel" id="opps" class="input-field" oninput="updatePowerRank()" min="1" max="100">
+      <span class="percentage">%</span>
+      <span id="opps-points" class="points">0 Points</span>
+      <span id="opps-recommendation" class="recommendation"></span>
     </div>
 
-    <div class="floating-button-container">
-        <img src="setting.png" alt="Settings" id="setting-icon" class="setting-icon">
+    <label for="ppvga">PPVGA to Goal:</label>
+    <div class="input-wrapper">
+      <input type="tel" id="ppvga" class="input-field" oninput="updatePowerRank()" min="1" max="100">
+      <span class="percentage">%</span>
+      <span id="ppvga-points" class="points">0 Points</span>
+      <span id="ppvga-recommendation" class="recommendation"></span>
     </div>
 
-    <div class="floating-container">
-        <h2 id="power-rank">Power Rank: 0</h2>
+    <div id="internet-container">
+      <label for="internet-goal">Internet to Goal:</label>
+      <div class="input-wrapper">
+        <input type="tel" id="internet" class="input-field" oninput="updatePowerRank()" min="1" max="100">
+        <span class="percentage">%</span>
+        <span id="internet-points" class="points">0 Points</span>
+        <span id="internet-recommendation" class="recommendation"></span>
+      </div>
     </div>
 
-    <h3 id="selected-scale-point">Point Scale: <span id="scale-point-text" style="color: #007BFF;">IN FOOT PRINT</span></h3>
-    <h1>Power Rank Calculator</h1>
-    <div class="input-container">
-        <label for="opps">Opps to Goal:</label>
-        <div class="input-wrapper">
-            <input type="tel" id="opps" class="input-field" oninput="updatePowerRank()" min="1" max="100">
-            <span class="percentage">%</span>
-            <span id="opps-points" class="points">0 Points</span>
-            <span id="opps-recommendation" class="recommendation"></span>
-        </div>
-
-        <label for="ppvga">PPVGA to Goal:</label>
-        <div class="input-wrapper">
-            <input type="tel" id="ppvga" class="input-field" oninput="updatePowerRank()" min="1" max="100">
-            <span class="percentage">%</span>
-            <span id="ppvga-points" class="points">0 Points</span>
-            <span id="ppvga-recommendation" class="recommendation"></span>
-        </div>
-
-        <div id="internet-container">
-            <label for="internet-goal">Internet to Goal:</label>
-            <div class="input-wrapper">
-                <input type="tel" id="internet" class="input-field" oninput="updatePowerRank()" min="1" max="100">
-                <span class="percentage">%</span>
-                <span id="internet-points" class="points">0 Points</span>
-                <span id="internet-recommendation" class="recommendation"></span>
-            </div>
-        </div>
-
-        <label for="accessories">Accessories to Goal:</label>
-        <div class="input-wrapper">
-            <input type="tel" id="accessories" class="input-field" oninput="updatePowerRank()" min="1" max="100">
-            <span class="percentage">%</span>
-            <span id="accessories-points" class="points">0 Points</span>
-            <span id="accessories-recommendation" class="recommendation"></span>
-        </div>
-
-        <label for="protection">Protection:</label>
-        <div class="input-wrapper">
-            <input type="tel" id="protection" class="input-field" oninput="updatePowerRank()" min="0" max="100">
-            <span class="percentage">%</span>
-            <span id="protection-points" class="points">0 Points</span>
-            <span id="protection-recommendation" class="protection"></span>
-        </div>
-
-        <label for="htp" class="htp-label">HTP:</label>
-        <div class="htp-sub">
-            <input type="tel" id="htp" class="input-field small-input" oninput="updatePowerRank()" pattern="[0-9]*" inputmode="decimal" />
-            <span class="percentage">%</span>
-            <span id="htp-warning" class="htp-warning hidden">Low HTP - Protection Score Reduced</span>
-        </div>
-
-        <label for="rate-plan">Rate Plan:</label>
-        <div class="input-wrapper">
-            <input type="tel" id="rate-plan" class="input-field" oninput="updatePowerRank()" min="1" max="100">
-            <span class="percentage">%</span>
-            <span id="rate-plan-points" class="points">0 Points</span>
-            <span id="rate-plan-recommendation" class="recommendation"></span>
-        </div>
-
-        <label for="next-up">Next Up:</label>
-        <div class="input-wrapper">
-            <input type="tel" id="next-up" class="input-field" oninput="updatePowerRank()" min="1" max="100">
-            <span class="percentage">%</span>
-            <span id="next-up-points" class="points">0 Points</span>
-            <span id="next-up-recommendation" class="recommendation"></span>
-        </div>
-
-        <label for="csat">CSAT:</label>
-        <div class="input-wrapper">
-            <input type="tel" id="csat" class="input-field" oninput="updatePowerRank()" min="1" max="100">
-            <span class="percentage">%</span>
-            <span id="csat-points" class="points">0 Points</span>
-            <span id="csat-recommendation" class="recommendation"></span>
-        </div>
-
-        <label for="wildcard-1">Plus 1 to Goal:</label>
-        <div class="input-wrapper">
-            <input type="tel" id="wildcard-1" class="input-field" oninput="updatePowerRank()" min="1" max="100">
-            <span class="percentage">%</span>
-            <span id="wildcard-1-points" class="points">0 Points</span>
-            <span id="wildcard-1-recommendation" class="recommendation"></span>
-        </div>
-
-        <label for="wildcard-2" id="wildcard-2-label">Sig. Attach Rate</label>
-        <div class="input-wrapper">
-            <input type="tel" id="wildcard-2" class="input-field" oninput="updatePowerRank()" min="1" max="100">
-            <span class="percentage">%</span>
-            <span id="wildcard-2-points" class="points">0 Points</span>
-            <span id="wildcard-2-recommendation" class="recommendation"></span>
-        </div>
-
-        <div class="tooltip" id="tooltip" style="display: none;"></div>
+    <label for="accessories">Accessories to Goal:</label>
+    <div class="input-wrapper">
+      <input type="tel" id="accessories" class="input-field" oninput="updatePowerRank()" min="1" max="100">
+      <span class="percentage">%</span>
+      <span id="accessories-points" class="points">0 Points</span>
+      <span id="accessories-recommendation" class="recommendation"></span>
     </div>
 
-    <!-- Sliding Menu -->
-    <div class="slider-menu" id="slider-menu">
-        <h2 class="slider-menu-title">Power Ranks</h2>
-        <ul>
-            <li><a href="">Calculator</a></li>
-            <li><a href="metricscales.html">Point & Weight Scale Metrics</a></li>
-            <li><a href="faq.html">FAQ</a></li>
-        </ul>
-        <div class="signature">
-            Built by <br> The Revenue Management Team
-        </div>
+    <label for="protection">Protection:</label>
+    <div class="input-wrapper">
+      <input type="tel" id="protection" class="input-field" oninput="updatePowerRank()" min="0" max="100">
+      <span class="percentage">%</span>
+      <span id="protection-points" class="points">0 Points</span>
+      <span id="protection-recommendation" class="protection"></span>
     </div>
 
-    <div class="slider-menu-right" id="slider-menu-right">
-        <h2 style="text-align: center;">Calculator Settings</h2>
-
-        <h4 style="text-align: center;">Pick Store Footprint</h4>
-        <button id="if-button">IF</button>
-        <button id="oof-button">OOF</button>
-
-        <h4 style="text-align: center; margin-top: 16px;">Pick 2nd Wildcard</h4>
-        <button id="wildcard2-crufn">CRU/FN</button>
-        <button id="wildcard2-fiber">Fiber CR</button>
-        <button id="wildcard2-aia">AIA CR</button>
-
-        <h4 style="text-align: center; margin-top: 16px;">Additional Options</h4>
-        <button id="toggle-contribution">Show Contribution</button>
-        <button id="reset-button">Reset Calculator</button>
+    <label for="htp" class="htp-label">HTP:</label>
+    <div class="htp-sub">
+      <input type="tel" id="htp" class="input-field small-input" oninput="updatePowerRank()" pattern="[0-9]*" inputmode="decimal" />
+      <span class="percentage">%</span>
+      <span id="htp-warning" class="htp-warning hidden">Low HTP - Protection Score Reduced</span>
     </div>
 
-    <div id="toast" class="toast">
-        <div id="toast-message"></div>
-        <div class="toast-actions">
-            <button id="toast-close">Dismiss</button>
-        </div>
+    <label for="rate-plan">Rate Plan:</label>
+    <div class="input-wrapper">
+      <input type="tel" id="rate-plan" class="input-field" oninput="updatePowerRank()" min="1" max="100">
+      <span class="percentage">%</span>
+      <span id="rate-plan-points" class="points">0 Points</span>
+      <span id="rate-plan-recommendation" class="recommendation"></span>
     </div>
 
-    <script>
-        let isInFootprint = true;
-        let showContributions = false;
+    <label for="next-up">Next Up:</label>
+    <div class="input-wrapper">
+      <input type="tel" id="next-up" class="input-field" oninput="updatePowerRank()" min="1" max="100">
+      <span class="percentage">%</span>
+      <span id="next-up-points" class="points">0 Points</span>
+      <span id="next-up-recommendation" class="recommendation"></span>
+    </div>
 
-        // NEW: Wildcard-2 selection state (defaults)
-        let wildcard2Group = 'group1';   // 'group1' | 'FiberCR' | 'AIACR'
-        let wildcard2Label = 'CRU/FN';   // UI label shown next to input
+    <label for="csat">CSAT:</label>
+    <div class="input-wrapper">
+      <input type="tel" id="csat" class="input-field" oninput="updatePowerRank()" min="1" max="100">
+      <span class="percentage">%</span>
+      <span id="csat-points" class="points">0 Points</span>
+      <span id="csat-recommendation" class="recommendation"></span>
+    </div>
 
-        const CURRENT_VERSION = '2.0';
+    <!-- WILDCARD-1 (label will be set dynamically) -->
+    <div id="wildcard-1-container">
+      <label for="wildcard-1"><span id="wildcard-1-label">Plus 1 to Goal</span></label>
+      <div class="input-wrapper">
+        <input type="tel" id="wildcard-1" class="input-field" oninput="updatePowerRank()" min="1" max="100">
+        <span class="percentage">%</span>
+        <span id="wildcard-1-points" class="points">0 Points</span>
+        <span id="wildcard-1-recommendation" class="recommendation"></span>
+      </div>
+    </div>
 
-        function markReturningUser() {
-            localStorage.setItem('hasVisitedBefore', 'true');
-        }
+    <!-- WILDCARD-2 (label will be set dynamically) -->
+    <div id="wildcard-2-container">
+      <label for="wildcard-2"><span id="wildcard-2-label">2nd Wildcard</span></label>
+      <div class="input-wrapper">
+        <input type="tel" id="wildcard-2" class="input-field" oninput="updatePowerRank()" min="1" max="100">
+        <span class="percentage">%</span>
+        <span id="wildcard-2-points" class="points">0 Points</span>
+        <span id="wildcard-2-recommendation" class="recommendation"></span>
+      </div>
+    </div>
 
-        function saveSettings() {
-            const settings = {
-                isInFootprint,
-                showContributions,
-                wildcard2Group,
-                wildcard2Label
-            };
-            localStorage.setItem('powerRankSettings', JSON.stringify(settings));
-        }
+    <div class="tooltip" id="tooltip" style="display: none;"></div>
+  </div>
 
-        function saveInputs() {
-            let inputValues = {};
-            $('.input-field').each(function() {
-                inputValues[$(this).attr('id')] = $(this).val();
-            });
-            localStorage.setItem('powerRankInputs', JSON.stringify(inputValues));
-        }
+  <!-- Sliding Menu -->
+  <div class="slider-menu" id="slider-menu">
+    <h2 class="slider-menu-title">Power Ranks</h2>
+    <ul>
+      <li><a href="">Calculator</a></li>
+      <li><a href="metricscales.html">Point & Weight Scale Metrics</a></li>
+      <li><a href="faq.html">FAQ</a></li>
+    </ul>
+    <div class="signature">
+      Built by <br> The Revenue Management Team
+    </div>
+  </div>
 
-        function loadSettings() {
-            const saved = localStorage.getItem('powerRankSettings');
-            if (saved) {
-                const settings = JSON.parse(saved);
-                isInFootprint = settings.isInFootprint ?? true;
-                showContributions = settings.showContributions ?? false;
+  <div class="slider-menu-right" id="slider-menu-right">
+    <h2 style="text-align: center;">Calculator Settings</h2>
 
-                // NEW: restore wildcard-2 selection
-                wildcard2Group = settings.wildcard2Group ?? 'sigrate';
-                wildcard2Label = settings.wildcard2Label ?? 'Sig. Attach Rate';
-                $('#wildcard-2-label').text(wildcard2Label);
+    <h4 style="text-align: center;">Pick Store Footprint</h4>
+    <button id="if-button">IF</button>
+    <button id="oof-button">OOF</button>
 
-                // Apply footprint display
-                if (isInFootprint) {
-                    $('#scale-point-text').text('IN FOOT-PRINT');
-                    $('#internet-container').show();
-                } else {
-                    $('#scale-point-text').text('OUT OF FOOTPRINT');
-                    $('#internet-container').hide();
-                }
+    <!-- Dynamic wildcard menus will be injected here -->
+    <div id="wildcard-menus"></div>
 
-                // Apply contribution display
-                if (showContributions) {
-                    $('.contribution').removeClass('hidden');
-                    $('#toggle-contribution').text('Hide Contribution');
-                } else {
-                    $('.contribution').addClass('hidden');
-                    $('#toggle-contribution').text('Show Contribution');
-                }
-            } else {
-                // ensure defaults appear on first load
-                $('#wildcard-2-label').text(wildcard2Label);
-            }
-        }
+    <h4 style="text-align: center; margin-top: 16px;">Additional Options</h4>
+    <button id="toggle-contribution">Show Contribution</button>
+    <button id="reset-button">Reset Calculator</button>
+  </div>
 
-        function loadInputs() {
-            let saved = localStorage.getItem('powerRankInputs');
-            if (saved) {
-                let inputValues = JSON.parse(saved);
-                Object.keys(inputValues).forEach(id => {
-                    $(`#${id}`).val(inputValues[id]);
-                });
-            }
-        }
+  <div id="toast" class="toast">
+    <div id="toast-message"></div>
+    <div class="toast-actions">
+      <button id="toast-close">Dismiss</button>
+    </div>
+  </div>
 
-        function resetCalculator() {
-            $('.input-field').val('');
-            localStorage.removeItem('powerRankInputs');
+  <script>
+    let isInFootprint = true;
+    let showContributions = false;
+    const CURRENT_VERSION = '2.2';
 
-            // Reset contribution visibility
-            showContributions = false;
-            $('.contribution').addClass('hidden');
-            $('#toggle-contribution').text('Show Contribution');
+    function markReturningUser() {
+      localStorage.setItem('hasVisitedBefore', 'true');
+    }
 
-            // Reset wildcard-2 to default (CRU/FN -> group1)
-            setWildcard2('sigrate', 'Sig. Attach Rate', false);
+    function getSettings() {
+      return JSON.parse(localStorage.getItem('powerRankSettings') || '{}');
+    }
+    function setSettings(s) {
+      localStorage.setItem('powerRankSettings', JSON.stringify(s));
+    }
 
-            saveSettings();
-            updatePowerRank();
-        }
+    function saveSettings() {
+      const s = getSettings();
+      s.isInFootprint = isInFootprint;
+      s.showContributions = showContributions;
+      setSettings(s);
+    }
 
-        function centeredText(text) { return `<div style="text-align: center;">${text}</div>`; }
+    function saveInputs() {
+      let inputValues = {};
+      $('.input-field').each(function() {
+        inputValues[$(this).attr('id')] = $(this).val();
+      });
+      localStorage.setItem('powerRankInputs', JSON.stringify(inputValues));
+    }
 
-        function showToast(message, persistent = false) {
-            const toast = $('#toast');
-            $('#toast-message').html(message);
-            toast.addClass('show');
+    function loadSettings() {
+      const s = getSettings();
 
-            if (persistent) {
-                $('#toast-close').show();
-            } else {
-                $('#toast-close').hide();
-                clearTimeout(toastTimer);
-                toastTimer = setTimeout(() => { toast.removeClass('show'); }, 2000);
-            }
-        }
+      isInFootprint = s.isInFootprint ?? true;
+      showContributions = s.showContributions ?? false;
 
-        let toastTimer;
-        $(document).on('click', '#toast-close', function() {
-            $('#toast').removeClass('show');
-            clearTimeout(toastTimer);
+      // Apply footprint display
+      if (isInFootprint) {
+        $('#scale-point-text').text('IN FOOT PRINT');
+        $('#internet-container').show();
+      } else {
+        $('#scale-point-text').text('OUT OF FOOTPRINT');
+        $('#internet-container').hide();
+      }
+
+      // Apply contribution display
+      if (showContributions) {
+        $('.contribution').removeClass('hidden');
+        $('#toggle-contribution').text('Hide Contribution');
+      } else {
+        $('.contribution').addClass('hidden');
+        $('#toggle-contribution').text('Show Contribution');
+      }
+    }
+
+    function loadInputs() {
+      let saved = localStorage.getItem('powerRankInputs');
+      if (saved) {
+        let inputValues = JSON.parse(saved);
+        Object.keys(inputValues).forEach(id => {
+          $(`#${id}`).val(inputValues[id]);
         });
+      }
+    }
 
-        // NEW: helper to set wildcard-2 option
-        function setWildcard2(groupKey, labelText, announce = true) {
-            wildcard2Group = groupKey;
-            wildcard2Label = labelText;
-            $('#wildcard-2-label').text(labelText);
-            saveSettings();
-            updatePowerRank();
-            if (announce) showToast(centeredText(`2nd Wildcard set to <strong>${labelText}</strong>.`));
+    function centeredText(text) { return `<div style="text-align: center;">${text}</div>`; }
+
+    function showToast(message, persistent = false) {
+      const toast = $('#toast');
+      $('#toast-message').html(message);
+      toast.addClass('show');
+
+      if (persistent) {
+        $('#toast-close').show();
+      } else {
+        $('#toast-close').hide();
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => { toast.removeClass('show'); }, 2000);
+      }
+    }
+
+    let toastTimer;
+    $(document).on('click', '#toast-close', function() {
+      $('#toast').removeClass('show');
+      clearTimeout(toastTimer);
+    });
+
+    // === Dynamic Wildcard Engine ===
+    function ensureWildcardDefaults(active) {
+      const s = getSettings();
+      const wildcards = active.wildcards || {};
+
+      Object.entries(wildcards).forEach(([id, def]) => {
+        const opts = def.options || [];
+        if (!opts.length) {
+          // no options: hide the input
+          $(`#${id}-container`).hide();
+          return;
         }
 
-$(document).ready(function() {
-    loadSettings();
+        // set label on the input
+        $(`#${id}-label`).text(def.label || id);
 
-    // Left slider toggle
-    $('#hamburger-menu').click(function(event) {
+        // if exactly one option, store it and hide the picker (no buttons)
+        if (opts.length === 1) {
+          const opt = opts[0];
+          s[id] = { groupKey: opt.key, labelText: opt.label };
+          setSettings(s);
+          // also reflect selection in label (optional: append selected)
+          // $(`#${id}-label`).text(`${def.label} — ${opt.label}`);
+        } else {
+          // ensure we have a selection; default to first option
+          if (!s[id] || !s[id].groupKey) {
+            s[id] = { groupKey: opts[0].key, labelText: opts[0].label };
+            setSettings(s);
+          }
+        }
+
+        // show the input if there are options
+        $(`#${id}-container`).show();
+      });
+    }
+
+    function buildWildcardMenus() {
+      const menu = $('#wildcard-menus');
+      menu.empty();
+
+      const active = getActiveScale();
+      const wildcards = active.wildcards || {};
+
+      Object.entries(wildcards).forEach(([id, def]) => {
+        const opts = def.options || [];
+        if (opts.length <= 1) return; // no need for a menu if <=1 option
+
+        menu.append(`<h4 style="text-align: center; margin-top: 16px;">Pick ${def.label || id}</h4>`);
+        opts.forEach(opt => {
+          menu.append(`<button class="wildcard-option" data-wildcard="${id}" data-key="${opt.key}" data-label="${opt.label}">${opt.label}</button>`);
+        });
+      });
+    }
+
+    function setWildcard(id, groupKey, labelText, announce = true) {
+    const s = getSettings();
+    s[id] = { groupKey, labelText };
+    setSettings(s);
+
+    // Update label to show only the selected option name
+    $(`#${id}-label`).text(labelText);
+
+    updatePowerRank();
+    if (announce) showToast(centeredText(`<strong>${labelText}</strong> selected.`));
+    }
+
+
+    function setupWildcards() {
+    const active = getActiveScale();
+    ensureWildcardDefaults(active);
+    buildWildcardMenus();
+
+    // Apply the current selected option labels
+    const s = getSettings();
+    const wildcards = active.wildcards || {};
+
+    Object.entries(wildcards).forEach(([id, def]) => {
+        const sel = s[id];
+        const opts = def.options || [];
+
+        if (opts.length === 1) {
+        // Single option — just show that option’s label
+        $(`#${id}-label`).text(opts[0].label);
+        } else if (sel?.labelText) {
+        // Multiple options — show selected label
+        $(`#${id}-label`).text(sel.labelText);
+        } else if (opts.length > 0) {
+        // No saved selection — default to first option
+        $(`#${id}-label`).text(opts[0].label);
+        }
+    });
+    }
+
+
+
+    function resetCalculator() {
+      $('.input-field').val('');
+      localStorage.removeItem('powerRankInputs');
+
+      // Reset contribution visibility
+      showContributions = false;
+      $('.contribution').addClass('hidden');
+      $('#toggle-contribution').text('Show Contribution');
+
+      // Reset wildcard selections to footprint defaults (first options)
+      const active = getActiveScale();
+      const wildcards = active.wildcards || {};
+      const s = getSettings();
+      Object.entries(wildcards).forEach(([id, def]) => {
+        const opts = def.options || [];
+        if (opts.length) {
+          s[id] = { groupKey: opts[0].key, labelText: opts[0].label };
+        } else {
+          delete s[id];
+        }
+      });
+      setSettings(s);
+
+      saveSettings();
+      updatePowerRank();
+    }
+
+    // Base tooltip copy (non-wildcards can remain static)
+    const tooltips = {
+      'opps': '50% minimum to receive points',
+      'ppvga': '50% minimum to receive points',
+      'internet': '60% minimum to receive points',
+      'accessories': '50% minimum to receive points',
+      'protection': '60% minimum to receive points',
+      'htp': '6% minimum attainment to prevent losing 50% of protection score',
+      'rate-plan': '65% minimum to receive points',
+      'next-up': '60% minimum to receive points',
+      'csat': '80% minimum to receive points'
+      // wildcard tooltips are computed dynamically
+    };
+
+    // Tooltip handling with dynamic wildcard minimums
+    $(document).on('focus', '.input-field', function () {
+      const inputId = $(this).attr('id');
+      const tooltip = $('#tooltip');
+
+      const active = getActiveScale();
+      let tooltipText = tooltips[inputId] || null;
+
+      // dynamic for wildcards
+      if (inputId.startsWith('wildcard')) {
+        const s = getSettings();
+        const sel = s[inputId];
+        if (sel && sel.groupKey) {
+          const min = minToScore(active, sel.groupKey);
+          if (min !== null) {
+            tooltipText = `${min}% minimum to receive points`;
+          }
+        }
+        // add weight line
+      }
+
+      if (!tooltipText) return;
+
+      const wx = (active.weights[inputId]) || 0;
+      tooltip.html(`${tooltipText}<br><strong>Weight: ${wx}%</strong>`);
+
+      const windowWidth = $(window).width();
+      const tooltipWidth = tooltip.outerWidth();
+      const inputOffset = $(this).offset();
+      const tooltipTop = inputOffset.top - tooltip.outerHeight() - 10;
+
+      tooltip.css({
+        top: tooltipTop,
+        left: (windowWidth / 2) - (tooltipWidth / 2),
+        display: 'block'
+      });
+    }).on('blur', '.input-field', function () {
+      $('#tooltip').hide();
+    });
+
+    function getPointsNeededForNextPowerRank(totalPoints) {
+      if (totalPoints >= 5 && totalPoints <= 7) return 8 - totalPoints;
+      if (totalPoints >= 8 && totalPoints <= 15) return 16 - totalPoints;
+      if (totalPoints >= 16 && totalPoints <= 23) return 24 - totalPoints;
+      if (totalPoints >= 24 && totalPoints <= 31) return 32 - totalPoints;
+      if (totalPoints >= 32 && totalPoints <= 39) return 40 - totalPoints;
+      if (totalPoints >= 40 && totalPoints <= 47) return 48 - totalPoints;
+      if (totalPoints >= 48 && totalPoints <= 55) return 56 - totalPoints;
+      if (totalPoints >= 56 && totalPoints <= 63) return 64 - totalPoints;
+      if (totalPoints >= 64 && totalPoints <= 71) return 72 - totalPoints;
+      if (totalPoints >= 72 && totalPoints <= 79) return 80 - totalPoints;
+      return 0;
+    }
+
+    let currentRank = 0;
+
+    function animatePowerRank(target) {
+      $({ countNum: currentRank }).animate({ countNum: target }, {
+        duration: 500,
+        easing: 'swing',
+        step: function() {
+          $('#power-rank').text('Power Rank: ' + this.countNum.toFixed(1));
+        },
+        complete: function() {
+          $('#power-rank').text('Power Rank: ' + target.toFixed(1));
+          currentRank = target;
+        }
+      });
+    }
+
+    function updatePowerRank() {
+      let values = {
+        'opps': parseFloat($('#opps').val()) || 0,
+        'ppvga': parseFloat($('#ppvga').val()) || 0,
+        'accessories': parseFloat($('#accessories').val()) || 0,
+        'protection': parseFloat($('#protection').val()) || 0,
+        'rate-plan': parseFloat($('#rate-plan').val()) || 0,
+        'next-up': parseFloat($('#next-up').val()) || 0,
+        'csat': parseFloat($('#csat').val()) || 0,
+        'wildcard-1': parseFloat($('#wildcard-1').val()) || 0,
+        'wildcard-2': parseFloat($('#wildcard-2').val()) || 0
+      };
+
+      const htpValue = parseFloat($('#htp').val()) || 0;
+
+      if (htpValue < (PR_CONFIG.rules?.protectionHalfIfHtpBelow ?? 6)) {
+        $('#htp-warning').removeClass('hidden');
+      } else {
+        $('#htp-warning').addClass('hidden');
+      }
+
+      let active = getActiveScale();
+
+      // Dynamically route ALL configured wildcards to their chosen threshold group
+      const s = getSettings();
+      const wildcards = active.wildcards || {};
+      const originalMap = {};
+
+      Object.keys(wildcards).forEach(wcId => {
+        // preserve original to avoid mutation side effects
+        originalMap[wcId] = active.metricToGroup[wcId];
+        if (s[wcId]?.groupKey) {
+          active.metricToGroup[wcId] = s[wcId].groupKey;
+        }
+      });
+
+      let weights = active.weights;
+
+      if (isInFootprint) values['internet'] = parseFloat($('#internet').val()) || 0;
+
+      let totalPoints = 0;
+      let totalWeight = 0;
+
+      Object.keys(values).forEach(metricId => {
+        // Skip metrics that don't exist in the current footprint weights (e.g., internet in OOF)
+        if (weights[metricId] === undefined) return;
+
+        let val = values[metricId];
+        let pts = pointsFor(metricId, val, active);
+
+        // Apply 50% reduction if HTP below rule for protection
+        if (metricId === 'protection' && htpValue < (PR_CONFIG.rules?.protectionHalfIfHtpBelow ?? 6)) {
+          pts = Math.floor(pts / 2);
+        }
+
+        let weight = weights[metricId] || 0;
+        let contribution = ((pts * weight) / 100).toFixed(2);
+
+        totalPoints += (pts * weight);
+        totalWeight += weight;
+
+        let pointsText = `${pts} Points`;
+        if (metricId === 'protection' && htpValue < (PR_CONFIG.rules?.protectionHalfIfHtpBelow ?? 6)) {
+          pointsText = `<span style="color: #e74c3c;">${pts} Points</span>`;
+        }
+
+        $(`#${metricId}-points`).html(`${pointsText} <span class="contribution ${showContributions ? '' : 'hidden'}">★ ${contribution}</span>`);
+      });
+
+      // restore original wildcard mapping to avoid side-effects
+      Object.keys(originalMap).forEach(wcId => {
+        active.metricToGroup[wcId] = originalMap[wcId];
+      });
+
+      const raw = totalWeight ? (totalPoints / totalWeight) : 0;
+      const powerRank = Math.floor(raw * 10) / 10; // truncate to 1 decimal
+      animatePowerRank(powerRank);
+      $('.floating-container').css('background-color', getColor(powerRank));
+    }
+
+    function getColor(powerRank) {
+      if (powerRank < 2) return '#FF3F3F';
+      if (powerRank < 3) return '#FF3F3F';
+      if (powerRank < 4) return '#F65448';
+      if (powerRank < 5) return '#F7665B';
+      if (powerRank < 6) return '#F8766C';
+      if (powerRank < 7) return '#F6A382';
+      if (powerRank < 8) return '#FCECA6';
+      if (powerRank < 9) return '#B6E8C0';
+      if (powerRank < 10) return '#8BD99A';
+      return '#53C587';
+    }
+
+    $(document).ready(function() {
+      loadSettings();
+
+      // Left slider toggle
+      $('#hamburger-menu').click(function(event) {
         const sliderMenu = $('#slider-menu');
         if (sliderMenu.css('left') === '0px') sliderMenu.css('left', '-250px');
         else sliderMenu.css('left', '0');
         event.stopPropagation();
-    });
+      });
 
-    // Right slider toggle
-    $('#setting-icon').click(function(event) {
+      // Right slider toggle
+      $('#setting-icon').click(function(event) {
         const sliderMenuRight = $('#slider-menu-right');
         if (sliderMenuRight.css('right') === '0px') sliderMenuRight.css('right', '-250px');
         else sliderMenuRight.css('right', '0');
         event.stopPropagation();
-    });
+      });
 
-    // Click outside to close sliders
-    $(document).click(function() {
+      // Click outside to close sliders
+      $(document).click(function() {
         const sliderMenu = $('#slider-menu');
         const sliderMenuRight = $('#slider-menu-right');
         if (sliderMenu.css('left') === '0px') sliderMenu.css('left', '-250px');
         if (sliderMenuRight.css('right') === '0px') sliderMenuRight.css('right', '-250px');
-    });
+      });
 
-    $('#toggle-contribution').click(function () {
+      $('#toggle-contribution').click(function () {
         showContributions = !showContributions;
         if (showContributions) {
-            $('.contribution').removeClass('hidden');
-            $(this).text('Hide Contribution');
-            showToast('Metric contribution points are now visible.');
+          $('.contribution').removeClass('hidden');
+          $(this).text('Hide Contribution');
+          showToast('Metric contribution points are now visible.');
         } else {
-            $('.contribution').addClass('hidden');
-            $(this).text('Show Contribution');
-            showToast('Metric contribution points are now hidden.');
+          $('.contribution').addClass('hidden');
+          $(this).text('Show Contribution');
+          showToast('Metric contribution points are now hidden.');
         }
         saveSettings();
-    });
+      });
 
-    $('#if-button').click(function(event) {
+      // Footprint selectors
+      $('#if-button').click(function(event) {
         isInFootprint = true;
         $('#scale-point-text').text('IN FOOT PRINT');
         $('#internet-container').show();
+        setupWildcards(); // rebuild menus/labels for this footprint
         showToast(centeredText('In Footprint scale selected.'));
         updatePowerRank();
         event.stopPropagation();
         saveSettings();
-    });
+      });
 
-    $('#oof-button').click(function(event) {
+      $('#oof-button').click(function(event) {
         isInFootprint = false;
         $('#scale-point-text').text('OUT OF FOOTPRINT');
         $('#internet-container').hide();
+        setupWildcards(); // rebuild menus/labels for this footprint
         showToast(centeredText('Out of Footprint scale selected.'));
         updatePowerRank();
         event.stopPropagation();
         saveSettings();
-    });
+      });
 
-    // NEW: wildcard-2 selectors
-    $('#wildcard2-crufn').click(() => setWildcard2('sigrate', 'Sig. Attach Rate'));
-    //$('#wildcard2-fiber').click(() => setWildcard2('FiberCR', 'Fiber CR'));
-    //$('#wildcard2-aia').click(() => setWildcard2('AIACR', 'AIA CR'));
+      // Dynamic wildcard option selection
+      $(document).on('click', '.wildcard-option', function() {
+        const id = $(this).data('wildcard');
+        const key = $(this).data('key');
+        const label = $(this).data('label');
+        setWildcard(id, key, label);
+      });
 
-    $('.input-field').on('input', function() {
+      $('.input-field').on('input', function() {
         updatePowerRank();
         saveInputs();
         saveSettings();
-    });
-    loadInputs();
+      });
+      loadInputs();
 
-    const isReturningUser = localStorage.getItem('hasVisitedBefore') === 'true';
-    if (!isReturningUser) {
+      const isReturningUser = localStorage.getItem('hasVisitedBefore') === 'true';
+      if (!isReturningUser) {
         showToast(
-            `<h2 style="text-align: center; margin-bottom: 10px;">Welcome to the Power Rank Calculator!</h2>
-            <p style="text-align: center;"><strong>What's new on this update?</strong></p>
-            <ul style="padding-left: 50px; margin: 10px 0; text-align: left;">
-                <li>⭐ A total of 10 Metrics evaluated</li>
-                <li>🚀 Weighted Metrics & Footprint Options</li>
-                <li>📊 New Point Scale & FAQ Pages</li>
-                <li>✅ Your progress and settings are saved!</li>
-                <li>👀 More updates coming soon...</li>
-            </ul>
-            <p style="text-align: center;"><strong>Get started by entering your metrics!</strong></p>`,
-            true
+          `<h2 style="text-align: center; margin-bottom: 10px;">Welcome to the Power Rank Calculator!</h2>
+          <p style="text-align: center;"><strong>What's new on this update?</strong></p>
+          <ul style="padding-left: 50px; margin: 10px 0; text-align: left;">
+              <li>⭐ A total of 10 Metrics evaluated</li>
+              <li>🚀 Weighted Metrics & Footprint Options</li>
+              <li>📊 New Point Scale & FAQ Pages</li>
+              <li>✅ Your progress and settings are saved!</li>
+              <li>👀 More updates coming soon...</li>
+          </ul>
+          <p style="text-align: center;"><strong>Get started by entering your metrics!</strong></p>`,
+          true
         );
         markReturningUser();
-    } else {
+      } else {
         showToast(
-            `<h2 style="text-align: center;">Welcome back! 👋</h2>
-            <p>Your previous inputs and settings have been loaded</p>`,
-            true
+          `<h2 style="text-align: center;">Welcome back! 👋</h2>
+          <p>Your previous inputs and settings have been loaded</p>`,
+          true
         );
-    }
+      }
 
-    updatePowerRank();
+      updatePowerRank();
 
-    $('#reset-button').click(function(event) {
+      $('#reset-button').click(function(event) {
         resetCalculator();
         showToast(centeredText('Calculator has been reset.'));
         event.stopPropagation();
+      });
     });
-});
-
-        // Base tooltip copy (dynamic override applied for wildcard-2 below)
-        const tooltips = {
-            'opps': '50% minimum to receive points',
-            'ppvga': '50% minimum to receive points',
-            'internet': '60% minimum to receive points',
-            'accessories': '50% minimum to receive points',
-            'protection': '60% minimum to receive points',
-            'htp': '6% minimum attainment to prevent losing 50% of protection score',
-            'rate-plan': '65% minimum to receive points',
-            'next-up': '60% minimum to receive points',
-            'csat': '80% minimum to receive points',
-            'wildcard-1': '50% minimum to receive points',
-            // wildcard-2 will be computed dynamically
-        };
-
-        $('.input-field').focus(function () {
-            const inputId = $(this).attr('id');
-            let tooltipText = tooltips[inputId];
-
-            // NEW: dynamic minimum for wildcard-2
-            if (inputId === 'wildcard-2') {
-                if (wildcard2Group === 'sigrate') tooltipText = '55% minimum to receive points';
-                //else if (wildcard2Group === 'AIACR') tooltipText = '5% minimum to receive points';
-                else tooltipText = '55% minimum to receive points';
-            }
-
-            if (!tooltipText) return;
-
-            const tooltip = $('#tooltip');
-            const active = getActiveScale();
-            const wx = (active.weights[inputId]) || 0;
-
-            tooltip.html(`${tooltipText}<br><strong>Weight: ${wx}%</strong>`);
-
-            const windowWidth = $(window).width();
-            const tooltipWidth = tooltip.outerWidth();
-            const inputOffset = $(this).offset();
-
-            const tooltipTop = inputOffset.top - tooltip.outerHeight() - 10;
-
-            tooltip.css({
-                top: tooltipTop,
-                left: (windowWidth / 2) - (tooltipWidth / 2),
-                display: 'block'
-            });
-        }).blur(function () {
-            $('#tooltip').hide();
-        });
-
-        function getPointsNeededForNextPowerRank(totalPoints) {
-            if (totalPoints >= 5 && totalPoints <= 7) return 8 - totalPoints;
-            if (totalPoints >= 8 && totalPoints <= 15) return 16 - totalPoints;
-            if (totalPoints >= 16 && totalPoints <= 23) return 24 - totalPoints;
-            if (totalPoints >= 24 && totalPoints <= 31) return 32 - totalPoints;
-            if (totalPoints >= 32 && totalPoints <= 39) return 40 - totalPoints;
-            if (totalPoints >= 40 && totalPoints <= 47) return 48 - totalPoints;
-            if (totalPoints >= 48 && totalPoints <= 55) return 56 - totalPoints;
-            if (totalPoints >= 56 && totalPoints <= 63) return 64 - totalPoints;
-            if (totalPoints >= 64 && totalPoints <= 71) return 72 - totalPoints;
-            if (totalPoints >= 72 && totalPoints <= 79) return 80 - totalPoints;
-            return 0;
-        }
-
-        let currentRank = 0;
-
-        function animatePowerRank(target) {
-            $({ countNum: currentRank }).animate({ countNum: target }, {
-                duration: 500,
-                easing: 'swing',
-                step: function() {
-                    $('#power-rank').text('Power Rank: ' + this.countNum.toFixed(1));
-                },
-                complete: function() {
-                    $('#power-rank').text('Power Rank: ' + target.toFixed(1));
-                    currentRank = target;
-                }
-            });
-        }
-
-        function updatePowerRank() {
-            let values = {
-                'opps': parseFloat($('#opps').val()) || 0,
-                'ppvga': parseFloat($('#ppvga').val()) || 0,
-                'accessories': parseFloat($('#accessories').val()) || 0,
-                'protection': parseFloat($('#protection').val()) || 0,
-                'rate-plan': parseFloat($('#rate-plan').val()) || 0,
-                'next-up': parseFloat($('#next-up').val()) || 0,
-                'csat': parseFloat($('#csat').val()) || 0,
-                'wildcard-1': parseFloat($('#wildcard-1').val()) || 0,
-                'wildcard-2': parseFloat($('#wildcard-2').val()) || 0
-            };
-
-            const htpValue = parseFloat($('#htp').val()) || 0;
-
-            if (htpValue < (PR_CONFIG.rules?.protectionHalfIfHtpBelow ?? 5.5)) {
-                $('#htp-warning').removeClass('hidden');
-            } else {
-                $('#htp-warning').addClass('hidden');
-            }
-
-            let active = getActiveScale();
-
-            // NEW: dynamically route wildcard-2 to the chosen threshold group
-            // (do not mutate config globally—override mapping on the fly)
-            const originalGroup = active.metricToGroup['wildcard-2'];
-            active.metricToGroup['wildcard-2'] = wildcard2Group;
-
-            let weights = active.weights;
-            if (isInFootprint) values['internet'] = parseFloat($('#internet').val()) || 0;
-
-            let totalPoints = 0;
-            let totalWeight = 0;
-
-            Object.keys(values).forEach(metricId => {
-                let val = values[metricId];
-                let pts = pointsFor(metricId, val, active);
-
-                // Apply 50% reduction if HTP below rule for protection
-                if (metricId === 'protection' && htpValue < (PR_CONFIG.rules?.protectionHalfIfHtpBelow ?? 6)) {
-                    pts = Math.floor(pts / 2);
-                }
-
-                let weight = weights[metricId] || 0;
-                let contribution = ((pts * weight) / 100).toFixed(2);
-
-                totalPoints += (pts * weight);
-                totalWeight += weight;
-
-                let pointsText = `${pts} Points`;
-                if (metricId === 'protection' && htpValue < (PR_CONFIG.rules?.protectionHalfIfHtpBelow ?? 6)) {
-                    pointsText = `<span style="color: #e74c3c;">${pts} Points</span>`;
-                }
-
-                $(`#${metricId}-points`).html(`${pointsText} <span class="contribution ${showContributions ? '' : 'hidden'}">★ ${contribution}</span>`);
-            });
-
-            // restore original mapping to avoid side-effects
-            active.metricToGroup['wildcard-2'] = originalGroup;
-
-            const raw = totalPoints / totalWeight;
-            const powerRank = Math.floor(raw * 10) / 10; // truncate to 1 decimal
-            animatePowerRank(powerRank);
-            $('.floating-container').css('background-color', getColor(powerRank));
-        }
-
-        function getColor(powerRank) {
-            if (powerRank < 2) return '#FF3F3F';
-            if (powerRank < 3) return '#FF3F3F';
-            if (powerRank < 4) return '#F65448';
-            if (powerRank < 5) return '#F7665B';
-            if (powerRank < 6) return '#F8766C';
-            if (powerRank < 7) return '#F6A382';
-            if (powerRank < 8) return '#FCECA6';
-            if (powerRank < 9) return '#B6E8C0';
-            if (powerRank < 10) return '#8BD99A';
-            return '#53C587';
-        }
-    </script>
+  </script>
 </body>
 </html>
-
-
