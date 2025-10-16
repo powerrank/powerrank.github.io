@@ -1,5 +1,5 @@
 {
-  "version": "2.1",
+  "version": "2.2",
   "footprints": {
     "IF": {
       "weights": {
@@ -94,6 +94,20 @@
         "next-up": "group3",
         "rate-plan": "rateplan",
         "csat": "group5"
+      },
+      "wildcards": {
+        "wildcard-1": {
+          "label": "Plus 1 to Goal",
+          "options": [
+            { "key": "group1", "label": "Plus 1s to Goal" }
+          ]
+        },
+        "wildcard-2": {
+          "label": "2nd Wildcard",
+          "options": [
+            { "key": "sigrate", "label": "Signature Rate" }
+          ]
+        }
       }
     },
     "OOF": {
@@ -109,7 +123,8 @@
         "wildcard-2": 5
       },
       "thresholds": "@same-as-IF",
-      "metricToGroup": "@same-as-IF"
+      "metricToGroup": "@same-as-IF",
+      "wildcards": "@same-as-IF"
     }
   },
   "rules": {
