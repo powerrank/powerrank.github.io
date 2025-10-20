@@ -368,7 +368,7 @@
   <script>
     let isInFootprint = true;
     let showContributions = false;
-    const CURRENT_VERSION = '2.2';
+    const CURRENT_VERSION = '2.3';
 
     function markReturningUser() {
       localStorage.setItem('hasVisitedBefore', 'true');
@@ -548,32 +548,52 @@
 
 
 
-    function resetCalculator() {
-      $('.input-field').val('');
-      localStorage.removeItem('powerRankInputs');
+   function resetCalculator() {
+       console.log('Resetting calculator... Config loaded:', !!PR_CONFIG); // Confirm config is available
+       // Clear saved inputs first to prevent rehydration
+       localStorage.removeItem('powerRankInputs');
 
-      // Reset contribution visibility
-      showContributions = false;
-      $('.contribution').addClass('hidden');
-      $('#toggle-contribution').text('Show Contribution');
+       // Clear all input fields visually and ensure no event interference
+       $('.input-field').each(function() {
+           $(this).val('').trigger('input'); // Clear and trigger input event to update immediately
+       });
 
-      // Reset wildcard selections to footprint defaults (first options)
-      const active = getActiveScale();
-      const wildcards = active.wildcards || {};
-      const s = getSettings();
-      Object.entries(wildcards).forEach(([id, def]) => {
-        const opts = def.options || [];
-        if (opts.length) {
-          s[id] = { groupKey: opts[0].key, labelText: opts[0].label };
-        } else {
-          delete s[id];
-        }
-      });
-      setSettings(s);
+       // Reset contribution visibility
+       showContributions = false;
+       $('.contribution').addClass('hidden');
+       $('#toggle-contribution').text('Show Contribution');
 
-      saveSettings();
-      updatePowerRank();
-    }
+       // Reset wildcard selections to footprint defaults (first options)
+       const active = getActiveScale();
+       const wildcards = active.wildcards || {};
+       const s = getSettings();
+
+       Object.entries(wildcards).forEach(([id, def]) => {
+           const opts = def.options || [];
+           if (opts.length) {
+               s[id] = { groupKey: opts[0].key, labelText: opts[0].label };
+           } else {
+               delete s[id];
+           }
+       });
+
+       setSettings(s);
+       saveSettings();
+
+       // Rebuild wildcard menus & labels
+       setupWildcards();
+
+       // Immediately reset Power Rank UI and internal counter
+       currentRank = 0;
+       $('#power-rank').text('Power Rank: 0'); // Explicitly set to "0" to avoid "0.0" confusion
+
+       // Force a recalculation with cleared inputs
+       updatePowerRank();
+       console.log('Calculator reset complete.');
+   }
+   
+
+
 
     // Base tooltip copy (non-wildcards can remain static)
     const tooltips = {
@@ -771,13 +791,21 @@
         event.stopPropagation();
       });
 
-      // Click outside to close sliders
-      $(document).click(function() {
+    // ✅ Replace your current "Click outside to close sliders" handler with this:
+    $(document).click(function(event) {
+    // Only close sliders if the click happened completely outside both menus
+    if (
+        $(event.target).closest('#slider-menu, #slider-menu-right').length === 0 &&
+        !$(event.target).is('#setting-icon') &&
+        !$(event.target).is('#hamburger-menu')
+    ) {
         const sliderMenu = $('#slider-menu');
         const sliderMenuRight = $('#slider-menu-right');
         if (sliderMenu.css('left') === '0px') sliderMenu.css('left', '-250px');
         if (sliderMenuRight.css('right') === '0px') sliderMenuRight.css('right', '-250px');
-      });
+    }
+    });
+
 
       $('#toggle-contribution').click(function () {
         showContributions = !showContributions;
@@ -795,6 +823,7 @@
 
       // Footprint selectors
       $('#if-button').click(function(event) {
+        console.log('In Foot Print button clicked');
         isInFootprint = true;
         $('#scale-point-text').text('IN FOOT PRINT');
         $('#internet-container').show();
@@ -823,6 +852,17 @@
         const label = $(this).data('label');
         setWildcard(id, key, label);
       });
+
+
+      $('#reset-button').click(function(event) {
+        event.stopPropagation();
+        event.preventDefault();
+
+        console.log('Reset button clicked');
+        resetCalculator();
+        $('#slider-menu-right').css('right', '-250px'); // Close the right slider
+        showToast(centeredText('Calculator has been reset.'));
+    });
 
       $('.input-field').on('input', function() {
         updatePowerRank();
@@ -857,12 +897,8 @@
 
       updatePowerRank();
 
-      $('#reset-button').click(function(event) {
-        resetCalculator();
-        showToast(centeredText('Calculator has been reset.'));
-        event.stopPropagation();
-      });
     });
   </script>
 </body>
 </html>
+
