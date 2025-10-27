@@ -190,16 +190,25 @@
   }
 
   /* ===== Tooltip ===== */
-  .tooltip {
+    .tooltip {
     position: absolute;
-    background: #333;
-    color: white;
-    padding: 8px 12px;
-    border-radius: 5px;
-    font-size: 14px;
+    background: #1e1e1e;
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.4;
     z-index: 1000;
-    opacity: 0.95;
-  }
+    max-width: 240px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+    opacity: 0.97;
+    pointer-events: none;
+    text-align: center;
+    transform: translateY(-5px);
+    }
+    .tooltip b { color: #00baff; }
+    .tooltip em { color: #bbb; font-size: 12px; display: block; margin-top: 2px; }
+
 
   /* ===== Menus ===== */
   .hamburger-container {
@@ -423,7 +432,7 @@
       <span id="protection-points" class="points">0 Points</span></div>
 
     <label>HTP:</label>
-    <div class="input-wrapper"><input id="htp" type="tel" class="input-field" pattern="[0-9]*" inputmode="decimal" style="width:60px">
+    <div class="input-wrapper"><input id="htp" type="tel" inputmode="decimal" class="input-field" style="width:60px">
       <span class="percentage">%</span><span id="htp-warning" class="htp-warning hidden">Low HTP -<br>Protection<br>Reduced</span></div>
 
     <label>Rate Plan:</label>
@@ -508,8 +517,140 @@ function updatePowerRank(){
   animatePowerRank(rank);$('.floating-container').css('background',getColor(rank));
 }
 
-$(document).on('focus','.input-field',function(){const id=$(this).attr('id');const tip=$('#tooltip');const act=getActiveScale();const g=act.metricToGroup[id];const min=g?minToScore(act,g):null;const w=act.weights[id]||0;let txt=(min!==null)?`${min}% minimum to receive points`:'No threshold found';if(id==='htp'){const htpT=(PR_CONFIG.rules&&PR_CONFIG.rules.htpMinimum)||0;txt=`${htpT}% minimum attainment to prevent losing 50% of protection score`;}
-tip.html(`${txt}<br><strong>${id!=='htp'?`Weight: ${w}%`:''}</strong>`);const off=$(this).offset();tip.css({top:off.top-50,left:off.left,display:'block'});}).on('blur','.input-field',()=>$('#tooltip').hide());
+let activeTooltipMetric = null; // track which metric tooltip belongs to
+
+function renderTooltip(metricId) {
+  const tip = $('#tooltip');
+  const active = getActiveScale();
+  const groupKey = active.metricToGroup[metricId];
+  const table = active.thresholds[groupKey] || [];
+  const weight = active.weights[metricId] || 0;
+
+  // === 1) SPECIAL CASE: HTP ===
+  if (metricId === 'htp') {
+    const htpT = PR_CONFIG.rules?.htpMinimum ?? 6;
+    tip.html(`
+      <strong>HTP</strong><br>
+      <em>Weight: N/A</em><br><br>
+      ${htpT}% minimum attainment required<br>
+      to prevent Protection from losing 50% of its score.
+    `);
+    const target = $(`#${metricId}`);
+    const off = target.offset();
+    const tipHeight = tip.outerHeight();
+    const tipWidth = tip.outerWidth();
+    tip.css({
+      top: off.top - tipHeight - 10,
+      left: off.left + (target.outerWidth() / 2) - (tipWidth / 2),
+      display: 'block'
+    });
+    return;
+  }
+
+  // === 2) FOR DUAL INPUT METRICS ===
+  if (['opps', 'ppvga', 'internet', 'accessories'].includes(metricId)) {
+    const actual = parseFloat($(`#${metricId}-actual`).val()) || 0;
+    const goal = parseFloat($(`#${metricId}-goal`).val()) || 0;
+    const percent = calcPercentage(actual, goal);
+
+    let currentTier = 0, nextMilestone = null;
+    for (let [lo, hi, pts] of table) {
+      if (percent >= lo && percent <= hi) currentTier = pts;
+      if (!nextMilestone && percent < lo) nextMilestone = [lo, pts];
+    }
+
+    let feedback = '';
+    if (goal > 0) {
+      if (nextMilestone) {
+        const neededPercent = nextMilestone[0];
+        const targetCount = Math.ceil(goal * (neededPercent / 100));
+        const moreNeeded = Math.max(targetCount - actual, 0);
+        feedback = `💡 Need <b>${moreNeeded}</b> more ${metricId === 'opps' ? 'Opps' : 'Units'} to reach <b>${neededPercent}%</b> (${nextMilestone[1]} pts).`;
+      } else {
+        feedback = `🏆 <b>Max tier reached</b> (${currentTier} pts). Excellent!`;
+      }
+    }
+
+    tip.html(`
+      <strong>${metricId.toUpperCase()}</strong><br>
+      <em>Weight: ${weight}%</em><br><br>
+      <b>Goal:</b> ${goal} | <b>Current:</b> ${actual} (${percent}%)<br>
+      ${feedback}
+    `);
+
+    const target = $(`#${metricId}-actual`);
+    const off = target.offset();
+    const tipHeight = tip.outerHeight();
+    const tipWidth = tip.outerWidth();
+    tip.css({
+      top: off.top - tipHeight - 10,
+      left: off.left + (target.outerWidth() / 2) - (tipWidth / 2),
+      display: 'block'
+    });
+    return;
+  }
+
+  // === 3) FOR SINGLE INPUT METRICS ===
+  if (['protection', 'rate-plan', 'next-up', 'csat'].includes(metricId)) {
+    const currentVal = parseFloat($(`#${metricId}`).val()) || 0;
+    const min = minToScore(active, groupKey);
+    let currentTier = 0, nextMilestone = null;
+    for (let [lo, hi, pts] of table) {
+      if (currentVal >= lo && currentVal <= hi) currentTier = pts;
+      if (!nextMilestone && currentVal < lo) nextMilestone = [lo, pts];
+    }
+
+    let feedback = '';
+    if (nextMilestone) {
+      const diff = (nextMilestone[0] - currentVal).toFixed(1);
+      feedback = `💡 Need +${diff}% more to reach <b>${nextMilestone[1]} pts</b>.`;
+    } else {
+      feedback = `🏆 <b>Max tier reached</b> (${currentTier} pts). Excellent!`;
+    }
+
+    tip.html(`
+      <strong>${metricId.toUpperCase()}</strong><br>
+      <em>Weight: ${weight}%</em><br><br>
+      <b>Current:</b> ${currentVal}% → ${currentTier} pts<br>
+      <b>Minimum to earn points:</b> ${min}%<br><br>
+      ${feedback}
+    `);
+
+    const target = $(`#${metricId}`);
+    const off = target.offset();
+    const tipHeight = tip.outerHeight();
+    const tipWidth = tip.outerWidth();
+    tip.css({
+      top: off.top - tipHeight - 10,
+      left: off.left + (target.outerWidth() / 2) - (tipWidth / 2),
+      display: 'block'
+    });
+    return;
+  }
+}
+
+$(document)
+  .on('focus', '.input-field', function() {
+    const id = $(this).attr('id');
+    const baseId = id.replace(/-(actual|goal)$/, '');
+    const validMetrics = ['opps','ppvga','internet','accessories','htp','protection','rate-plan','next-up','csat'];
+    if (validMetrics.includes(baseId)) {
+      activeTooltipMetric = baseId;
+      renderTooltip(baseId);
+    }
+  })
+  .on('blur', '.input-field', function() {
+    activeTooltipMetric = null;
+    $('#tooltip').hide();
+  })
+  .on('input', '.input-field', function() {
+    if (!activeTooltipMetric) return;
+    renderTooltip(activeTooltipMetric);
+  });
+
+
+
+
 
 function showToast(msg){const t=$('#toast');t.text(msg).addClass('show');setTimeout(()=>t.removeClass('show'),2000);}
 $('#hamburger-menu').click(function(e){const s=$('#slider-menu');s.css('left',s.css('left')==='0px'?'-250px':'0');e.stopPropagation();});
