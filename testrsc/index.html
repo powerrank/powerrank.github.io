@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="description" content="RSC Power Rank Calculator – Dual Input Version" />
+  <title>RSC Power Rank Calculator (v2)</title>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+  <script>
+  /* ==== CONFIG ENGINE ==== */
+  let PR_CONFIG = {};
+
+  async function loadConfig() {
+    try {
+      const res = await fetch('./config.json', { cache: 'no-store' });
+      if (res.ok) {
+        PR_CONFIG = await res.json();
+        localStorage.setItem('rsc_config_cache', JSON.stringify(PR_CONFIG));
+      } else {
+        const cached = localStorage.getItem('rsc_config_cache');
+        if (cached) PR_CONFIG = JSON.parse(cached);
+      }
+    } catch (e) {
+      const cached = localStorage.getItem('rsc_config_cache');
+      if (cached) PR_CONFIG = JSON.parse(cached);
+    }
+  }
+
+  function clone(obj){ return JSON.parse(JSON.stringify(obj)); }
+
+  function getActiveScale() {
+    const fp = (typeof isInFootprint !== 'undefined' && isInFootprint) ? 'IF' : 'OOF';
+    const base = PR_CONFIG.footprints;
+    const resolved = { IF: clone(base.IF), OOF: clone(base.OOF) };
+    if (resolved.OOF.thresholds === '@same-as-IF') resolved.OOF.thresholds = clone(resolved.IF.thresholds);
+    if (resolved.OOF.metricToGroup === '@same-as-IF') resolved.OOF.metricToGroup = clone(resolved.IF.metricToGroup);
+    return resolved[fp];
+  }
+
+  function pointsFor(metricId, value, activeCfg) {
+    const grp = activeCfg.metricToGroup[metricId];
+    const table = activeCfg.thresholds[grp] || [];
+    for (let i=0;i<table.length;i++){const[lo,hi,pts]=table[i];if(value>=lo&&value<=hi)return pts;}
+    return table.length?table[table.length-1][2]:0;
+  }
+
+  function minToScore(activeCfg, groupKey) {
+    const table = activeCfg.thresholds[groupKey] || [];
+    for (let i=0;i<table.length;i++){const[lo,hi,pts]=table[i];if(pts>0)return lo;}
+    return null;
+  }
+
+  function calcPercentage(actual,goal){if(!goal||goal===0)return 0;return Math.min(999,((actual/goal)*100).toFixed(1));}
+  </script>
+
+<style>
+  body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #f9f9f9;
+    padding: 120px 2% 150px 2%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  h1, h3 {
+    text-align: center;
+    color: #333;
+  }
+
+  /* ===== Centered Input Layout ===== */
+  .input-container {
+    width: 80%;
+    max-width: 600px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  label {
+    display: block;
+    text-align: center;
+    font-weight: 600;
+    margin: 8px 0 4px 0;
+  }
+
+  .metric-group,
+  .input-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 10px;
+    padding: 6px 8px;
+    transition: background 0.3s;
+    border-radius: 6px;
+    width: 100%;
+  }
+
+  .metric-group:hover,
+  .input-wrapper:hover {
+    background: #eef6ff;
+  }
+
+  .input-field {
+    width: 80px;
+    padding: 8px;
+    border: 2px solid #ccc;
+    border-radius: 5px;
+    font-size: 15px;
+    text-align: center;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+
+  .input-field:focus {
+    border-color: #007BFF;
+    box-shadow: 0 0 5px rgba(0,123,255,0.5);
+    outline: none;
+  }
+
+  .points {
+    min-width: 50px;
+    text-align: right;
+    font-weight: bold;
+    color: #007BFF;
+  }
+
+  .percentage {
+    font-weight: bold;
+  }
+
+  .metric-group span,
+  .input-wrapper span {
+    font-weight: bold;
+    font-size: 14px;
+  }
+
+  .htp-warning {
+    margin-left: 8px;
+    font-size: 12px;
+    color: #e74c3c;
+    font-style: italic;
+    white-space: nowrap;
+  }
+
+  /* ===== % to Goal Mini Label ===== */
+  .metric-result {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 50px;
+  }
+
+  .mini-label {
+    font-size: 11px;
+    color: #777;
+    margin-bottom: 2px;
+    line-height: 1;
+  }
+
+
+  /* ===== Fix Internet Container Alignment ===== */
+  #internet-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;      /* Center the inner metric-group */
+    justify-content: center;
+  }
+
+  #internet-container .metric-group {
+    width: 100%;              /* Match all other metric rows */
+    justify-content: center;  /* Keep the contents centered */
+  }
+
+
+  /* ===== Floating Header ===== */
+  .floating-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: #007BFF;
+    color: white;
+    padding: 10px;
+    text-align: center;
+    z-index: 2;
+  }
+
+  /* ===== Tooltip ===== */
+  .tooltip {
+    position: absolute;
+    background: #333;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 5px;
+    font-size: 14px;
+    z-index: 1000;
+    opacity: 0.95;
+  }
+
+  /* ===== Menus ===== */
+  .hamburger-container {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background-color: rgba(255,255,255,.8);
+    border-radius: 10px;
+    padding: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,.2);
+    z-index: 3;
+  }
+
+  .hamburger-menu {
+    cursor: pointer;
+  }
+
+  .hamburger-menu .bar {
+    width: 30px;
+    height: 3px;
+    background-color: #333;
+    margin: 5px 0;
+    transition: .4s;
+  }
+
+  .floating-button-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: rgba(255,255,255,.8);
+    border-radius: 10px;
+    padding: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,.2);
+    z-index: 3;
+  }
+
+  .setting-icon {
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    display: block;
+    margin: 0 auto;
+  }
+
+  /* ===== Sliders ===== */
+  .slider-menu,
+  .slider-menu-right {
+    position: fixed;
+    top: 0;
+    height: 100%;
+    width: 200px;
+    background-color: #007BFF;
+    color: white;
+    transition: all .3s ease;
+    z-index: 5;
+    padding: 20px;
+  }
+
+  .slider-menu { left: -250px; }
+  .slider-menu-right { right: -250px; }
+
+  .slider-menu h2,
+  .slider-menu-right h2 {
+    text-align: center;
+    margin-top: 0;
+  }
+
+  .slider-menu ul {
+    list-style: none;
+    padding: 0;
+    margin-top: 30%;
+    text-align: center;
+  }
+
+  .slider-menu li {
+    margin: 20px 0;
+  }
+
+  .slider-menu a {
+    color: white;
+    text-decoration: none;
+    font-size: 18px;
+  }
+
+  .slider-menu a:hover {
+    text-decoration: underline;
+  }
+
+  .slider-menu-right button {
+    background-color: #FF5733;
+    color: white;
+    border: none;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 100%;
+  }
+
+  .slider-menu-right button:hover {
+    background-color: #FF3F3F;
+  }
+
+  /* ===== Toast ===== */
+  .toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #2c4056;
+    color: white;
+    padding: 15px;
+    border-radius: 5px;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity .5s ease;
+  }
+
+  .toast.show {
+    opacity: 1;
+  }
+
+  /* ===== Misc ===== */
+  .hidden {
+    display: none !important;
+  }
+
+  .contribution {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 5px;
+    font-weight: bold;
+    color: #28a745;
+    font-size: 14px;
+  }
+
+  .contribution::before {
+    content: "★";
+    margin-right: 3px;
+    color: #28a745;
+    font-size: 14px;
+  }
+</style>
+
+
+</head>
+
+<body>
+  <div class="hamburger-container"><div class="hamburger-menu" id="hamburger-menu"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div></div>
+  <div class="floating-button-container"><img src="../setting.png" alt="Settings" id="setting-icon" class="setting-icon"></div>
+
+  <div class="floating-container"><h2 id="power-rank">Power Rank: 0</h2></div>
+  <h3 id="selected-scale-type">RSC Scale: <span id="scale-type-text" style="color:#007BFF;">Standard RSC</span></h3>
+  <h3 id="selected-scale-point">Point Scale: <span id="scale-point-text" style="color:#007BFF;">IN FOOT PRINT</span></h3>
+  <h1>RSC Power Rank Calculator</h1>
+
+  <div class="input-container">
+
+    <!-- Dual Input Metrics -->
+    <label><strong>Opps:</strong></label>
+    <div class="metric-group">
+      <input id="opps-actual" type="number" class="input-field" placeholder="MTD / RR">
+      <input id="opps-goal" type="number" class="input-field" placeholder="Goal">
+      
+      <div class="metric-result">
+        <div class="mini-label">% to Goal</div>
+        <span id="opps-percent">0%</span>
+      </div>
+
+      <span id="opps-points" class="points">0 Points</span>
+    </div>
+
+
+    <label><strong>PPVGA:</strong></label>
+    <div class="metric-group">
+      <input id="ppvga-actual" type="number" class="input-field" placeholder="MTD / RR">
+      <input id="ppvga-goal" type="number" class="input-field" placeholder="Goal">
+
+      <div class="metric-result">
+        <div class="mini-label">% to Goal</div>
+        <span id="ppvga-percent">0%</span>
+      </div>
+
+      <span id="ppvga-points" class="points">0 Points</span>
+    </div>
+
+
+    <div id="internet-container">
+      <label><strong>Internet:</strong></label>
+      <div class="metric-group">
+        <input id="internet-actual" type="number" class="input-field" placeholder="MTD / RR">
+        <input id="internet-goal" type="number" class="input-field" placeholder="Goal">
+
+        <div class="metric-result">
+          <div class="mini-label">% to Goal</div>
+          <span id="internet-percent">0%</span>
+        </div>
+
+        <span id="internet-points" class="points">0 Points</span>
+      </div>
+    </div>
+
+
+    <label><strong>Accessories:</strong></label>
+    <div class="metric-group">
+      <input id="accessories-actual" type="number" class="input-field" placeholder="MTD / RR">
+      <input id="accessories-goal" type="number" class="input-field" placeholder="Goal">
+
+      <div class="metric-result">
+        <div class="mini-label">% to Goal</div>
+        <span id="accessories-percent">0%</span>
+      </div>
+
+      <span id="accessories-points" class="points">0 Points</span>
+    </div>
+
+
+    <!-- Remaining Metrics -->
+    <label>Protection:</label>
+    <div class="input-wrapper"><input id="protection" type="tel" class="input-field"><span class="percentage">%</span>
+      <span id="protection-points" class="points">0 Points</span></div>
+
+    <label>HTP:</label>
+    <div class="input-wrapper"><input id="htp" type="tel" class="input-field" style="width:60px">
+      <span class="percentage">%</span><span id="htp-warning" class="htp-warning hidden">Low HTP -<br>Protection<br>Reduced</span></div>
+
+    <label>Rate Plan:</label>
+    <div class="input-wrapper"><input id="rate-plan" type="tel" class="input-field"><span class="percentage">%</span>
+      <span id="rate-plan-points" class="points">0 Points</span></div>
+
+    <label>Next Up:</label>
+    <div class="input-wrapper"><input id="next-up" type="tel" class="input-field"><span class="percentage">%</span>
+      <span id="next-up-points" class="points">0 Points</span></div>
+
+    <label>CSAT:</label>
+    <div class="input-wrapper"><input id="csat" type="tel" class="input-field"><span class="percentage">%</span>
+      <span id="csat-points" class="points">0 Points</span></div>
+  </div>
+
+  <div class="tooltip" id="tooltip" style="display:none;"></div>
+
+  <div class="slider-menu" id="slider-menu">
+    <h2>Power Ranks</h2>
+    <ul>
+      <li><a href="../index.html">Store Calculator</a></li>
+      <li><a href="/">Point Scales</a></li>
+      <li><a href="../faq/">FAQ</a></li>
+    </ul>
+    <div class="signature" style="text-align:center;position:absolute;bottom:50px;left:50%;transform:translateX(-50%);font-size:13px;">Built by<br>The Revenue Management Team</div>
+  </div>
+
+  <div class="slider-menu-right" id="slider-menu-right">
+    <h2>Settings</h2>
+    <h4 style="text-align:center;margin-top:16px;">RSC Scale Options</h4>
+    <button id="toggle-rsc-scale">Use Reg. RSC Scale</button>
+    <h4 style="text-align:center;">Pick Footprint</h4>
+    <button id="if-button">In Footprint</button>
+    <button id="oof-button">Out of Footprint</button>
+    <h4 style="text-align:center;margin-top:16px;">Additional</h4>
+    <button id="toggle-contribution">Show Contributions</button>
+    <button id="reset-button">Reset Calculator</button>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+<script>
+let isInFootprint=true,currentRank=0,useRegRscScale=false,showContributions=false;
+
+function getSettings(){return JSON.parse(localStorage.getItem('rscSettings')||'{}');}
+function saveSettings(){const s=getSettings();s.isInFootprint=isInFootprint;s.useRegRscScale=useRegRscScale;s.showContributions=showContributions;localStorage.setItem('rscSettings',JSON.stringify(s));}
+function saveInputs(){let v={};$('.input-field').each(function(){v[$(this).attr('id')]=$(this).val();});localStorage.setItem('rscInputs',JSON.stringify(v));}
+function loadInputs(){let s=localStorage.getItem('rscInputs');if(s){let v=JSON.parse(s);Object.keys(v).forEach(id=>{$(`#${id}`).val(v[id]);});}}
+function updateScaleLabels(){if(useRegRscScale){$('#scale-type-text').text('Reg. RSC').css('color','#FF8C00');}else{$('#scale-type-text').text('Standard RSC').css('color','#007BFF');}$('#scale-point-text').text(isInFootprint?'IN FOOT PRINT':'OUT OF FOOTPRINT');}
+
+function loadSettings(){
+  const s=getSettings();
+  isInFootprint=s.isInFootprint??true;
+  useRegRscScale=s.useRegRscScale??false;
+  showContributions=s.showContributions??false;
+  updateScaleLabels();
+  if(isInFootprint)$('#internet-container').show();else $('#internet-container').hide();
+  $('#toggle-rsc-scale').text(useRegRscScale?'Use Standard RSC Scale':'Use Reg. RSC Scale');
+  $('#toggle-contribution').text(showContributions?'Hide Contributions':'Show Contributions');
+  const active=getActiveScale();const target=useRegRscScale?'regrsc':'rsc';
+  ['opps','ppvga','internet','accessories'].forEach(m=>{active.metricToGroup[m]=target;});
+}
+
+function getColor(pr){if(pr<5)return'#FF3F3F';if(pr<6)return'#F8766C';if(pr<7)return'#F6A382';if(pr<8)return'#FCECA6';if(pr<9)return'#B6E8C0';if(pr<10)return'#8BD99A';return'#53C587';}
+function animatePowerRank(t){$({countNum:currentRank}).animate({countNum:t},{duration:500,easing:'swing',step:function(){$('#power-rank').text('Power Rank: '+this.countNum.toFixed(1));},complete:function(){$('#power-rank').text('Power Rank: '+t.toFixed(1));currentRank=t;}});}
+
+function updatePowerRank(){
+  const active=getActiveScale();const weights=active.weights;
+  const metrics=['opps','ppvga','internet','accessories'];const v={};
+  metrics.forEach(m=>{const a=parseFloat($(`#${m}-actual`).val())||0;const g=parseFloat($(`#${m}-goal`).val())||0;const p=calcPercentage(a,g);$(`#${m}-percent`).text(`${p}%`);v[m]=p;});
+  v.protection=parseFloat($('#protection').val())||0;v['rate-plan']=parseFloat($('#rate-plan').val())||0;v['next-up']=parseFloat($('#next-up').val())||0;v.csat=parseFloat($('#csat').val())||0;
+  const htp=parseFloat($('#htp').val())||0;const htpThreshold=PR_CONFIG.rules?.htpMinimum??6;
+  let totalPoints=0,totalWeight=0;
+  Object.keys(weights).forEach(id=>{let val=v[id]||0;let pts=pointsFor(id,val,active);
+    if(id==='protection'&&htp<htpThreshold){pts=Math.floor(pts/2);$(`#${id}-points`).css('color','#e74c3c');}
+    else if(id==='protection'){$(`#${id}-points`).css('color','#007BFF');}
+    totalPoints+=pts*weights[id];totalWeight+=weights[id];
+    let contrib=((pts*weights[id])/100).toFixed(2);
+    $(`#${id}-points`).html(`${pts} Points <span class="contribution ${showContributions?'':'hidden'}">${contrib}</span>`);});
+  if(htp<htpThreshold)$('#htp-warning').removeClass('hidden');else $('#htp-warning').addClass('hidden');
+  const raw=totalWeight?(totalPoints/totalWeight):0;const rank=Math.floor(raw*10)/10;
+  animatePowerRank(rank);$('.floating-container').css('background',getColor(rank));
+}
+
+$(document).on('focus','.input-field',function(){const id=$(this).attr('id');const tip=$('#tooltip');const act=getActiveScale();const g=act.metricToGroup[id];const min=g?minToScore(act,g):null;const w=act.weights[id]||0;let txt=(min!==null)?`${min}% minimum to receive points`:'No threshold found';if(id==='htp'){const htpT=(PR_CONFIG.rules&&PR_CONFIG.rules.htpMinimum)||0;txt=`${htpT}% minimum attainment to prevent losing 50% of protection score`;}
+tip.html(`${txt}<br><strong>${id!=='htp'?`Weight: ${w}%`:''}</strong>`);const off=$(this).offset();tip.css({top:off.top-50,left:off.left,display:'block'});}).on('blur','.input-field',()=>$('#tooltip').hide());
+
+function showToast(msg){const t=$('#toast');t.text(msg).addClass('show');setTimeout(()=>t.removeClass('show'),2000);}
+$('#hamburger-menu').click(function(e){const s=$('#slider-menu');s.css('left',s.css('left')==='0px'?'-250px':'0');e.stopPropagation();});
+$('#setting-icon').click(function(e){const s=$('#slider-menu-right');s.css('right',s.css('right')==='0px'?'-250px':'0');e.stopPropagation();});
+$(document).click(function(e){if($(e.target).closest('#slider-menu,#slider-menu-right').length===0){$('#slider-menu').css('left','-250px');$('#slider-menu-right').css('right','-250px');}});
+
+$('#if-button').click(function(){isInFootprint=true;$('#scale-point-text').text('IN FOOT PRINT');$('#internet-container').show();showToast('In Footprint scale selected.');updatePowerRank();saveSettings();});
+$('#oof-button').click(function(){isInFootprint=false;$('#scale-point-text').text('OUT OF FOOTPRINT');$('#internet-container').hide();showToast('Out of Footprint scale selected.');updatePowerRank();saveSettings();});
+$('#toggle-rsc-scale').click(function(){useRegRscScale=!useRegRscScale;const act=getActiveScale();const target=useRegRscScale?'regrsc':'rsc';['opps','ppvga','internet','accessories'].forEach(m=>{act.metricToGroup[m]=target;});updatePowerRank();updateScaleLabels();showToast(useRegRscScale?'Reg. RSC scale activated.':'Standard RSC scale restored.');$(this).text(useRegRscScale?'Use Standard RSC Scale':'Use Reg. RSC Scale');saveSettings();});
+$('#toggle-contribution').click(function(){showContributions=!showContributions;if(showContributions){$('.contribution').removeClass('hidden');$(this).text('Hide Contributions');showToast('Metric contribution points are now visible.');}else{$('.contribution').addClass('hidden');$(this).text('Show Contributions');showToast('Metric contribution points are now hidden.');}updatePowerRank();saveSettings();});
+$('#reset-button').click(function(){$('.input-field').val('');localStorage.removeItem('rscInputs');updatePowerRank();showToast('Calculator reset.');showContributions=false;useRegRscScale=false;isInFootprint=true;saveSettings();});
+
+$(document).ready(function(){loadConfig().then(()=>{loadSettings();loadInputs();updateScaleLabels();updatePowerRank();$('.input-field').on('input',function(){updatePowerRank();saveInputs();saveSettings();});});});
+</script>
+</body>
+</html>
