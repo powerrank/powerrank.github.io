@@ -189,31 +189,19 @@
     z-index: 2;
   }
 
-  /* ===== Tooltip ===== */
-    .tooltip {
-    position: absolute;
-    background: #1e1e1e;
-    color: #fff;
-    padding: 12px 16px;
-    border-radius: 10px;
-    font-size: 13px;
-    line-height: 1.45;
-    z-index: 1000;
-    max-width: 85%;
-    width: 280px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    opacity: 0.97;
-    pointer-events: none;
-    text-align: center;
-    transform: translateY(-5px);
-    }
-    .tooltip b { color: #00baff; }
-    .tooltip em {
-    color: #bbb;
-    font-size: 12px;
-    display: block;
-    margin-top: 2px;
-    }
+  /* ===== Tooltip (fixed + mobile-safe) ===== */
+  .tooltip{
+    position: fixed;             /* was absolute */
+    background:#1e1e1e;color:#fff;
+    padding:12px 16px;border-radius:10px;
+    font-size:13px;line-height:1.45;z-index:1000;
+    max-width:85vw;width:280px; /* clamp for mobile */
+    box-shadow:0 4px 10px rgba(0,0,0,.3);
+    opacity:.97;pointer-events:none;text-align:center;
+  }
+  .tooltip b{color:#00baff;}
+  .tooltip em{color:#bbb;font-size:12px;display:block;margin-top:2px;}
+
 
 
 
@@ -542,7 +530,7 @@ function renderTooltip(metricId) {
       ${htpT}% minimum attainment required<br>
       to prevent Protection from being cut by 50%.
     `);
-    positionTooltipAbove(`#${metricId}`);
+    positionTooltipCenteredAbove('#' + metricId);
     return;
   }
 
@@ -577,7 +565,7 @@ function renderTooltip(metricId) {
       ${feedback}
     `);
 
-    positionTooltipAbove(`#${metricId}-actual`);
+    positionTooltipCenteredAbove('#' + metricId + '-actual');
     return;
   }
 
@@ -607,41 +595,44 @@ function renderTooltip(metricId) {
       ${feedback}
     `);
 
-    positionTooltipAbove(`#${metricId}`);
+    positionTooltipCenteredAbove('#' + metricId);
     return;
   }
 }
 
 
-/* === SMART POSITIONER: centered horizontally, aligned above input vertically === */
-function positionTooltipAbove(selector) {
+/* === RESTORED LOGIC (absolute, scroll-following, centers horizontally on screen) === */
+function positionTooltipCenteredAbove(selector) {
   const tip = $('#tooltip');
   const target = $(selector);
   if (!target.length) return;
 
-  const off = target.offset();
-  const tipHeight = tip.outerHeight();
-  const scrollY = $(window).scrollTop();
+  // Make tooltip visible to measure its size
+  tip.css({ display: 'block', visibility: 'hidden' });
+
+  const off = target.offset();          // ← document-based coordinates (follows scroll)
+  const tipH = tip.outerHeight();
+  const tipW = tip.outerWidth();
   const winW = $(window).width();
 
-  // Keep same vertical height (above input field)
-  let top = off.top - tipHeight - 10 - scrollY;
+  // Vertical placement: always above the input field
+  const top = off.top - tipH - 10;      // 10px gap from the input box
 
-  // Center tooltip horizontally in the viewport
-  const tipWidth = tip.outerWidth();
-  let left = (winW - tipWidth) / 2;
-
-  // Prevent overflow on tiny screens
+  // Horizontal: center on the screen (not just the input)
+  let left = (winW - tipW) / 2;
   if (left < 5) left = 5;
-  if (left + tipWidth > winW - 5) left = winW - tipWidth - 5;
+  if (left + tipW > winW - 5) left = winW - tipW - 5;
 
   tip.css({
+    position: 'absolute',
     top: top,
     left: left,
-    display: 'block',
+    visibility: 'visible',
     opacity: 0
   }).stop(true, true).animate({ opacity: 1 }, 150);
 }
+
+
 
 $(document)
   .on('focus', '.input-field', function() {
@@ -672,6 +663,14 @@ $(document)
   });
 
 
+// Reposition on scroll/resize while a field is active
+$(window).on('scroll resize', function(){
+  if (!activeTooltipMetric) return;
+  const sel = ['opps','ppvga','internet','accessories'].includes(activeTooltipMetric)
+              ? `#${activeTooltipMetric}-actual`
+              : `#${activeTooltipMetric}`;
+  positionTooltipCenteredAbove(sel);
+});
 
 
 
