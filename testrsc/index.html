@@ -194,20 +194,27 @@
     position: absolute;
     background: #1e1e1e;
     color: #fff;
-    padding: 10px 14px;
-    border-radius: 8px;
+    padding: 12px 16px;
+    border-radius: 10px;
     font-size: 13px;
-    line-height: 1.4;
+    line-height: 1.45;
     z-index: 1000;
-    max-width: 240px;
-    box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+    max-width: 85%;
+    width: 280px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     opacity: 0.97;
     pointer-events: none;
     text-align: center;
     transform: translateY(-5px);
     }
     .tooltip b { color: #00baff; }
-    .tooltip em { color: #bbb; font-size: 12px; display: block; margin-top: 2px; }
+    .tooltip em {
+    color: #bbb;
+    font-size: 12px;
+    display: block;
+    margin-top: 2px;
+    }
+
 
 
   /* ===== Menus ===== */
@@ -526,28 +533,20 @@ function renderTooltip(metricId) {
   const table = active.thresholds[groupKey] || [];
   const weight = active.weights[metricId] || 0;
 
-  // === 1) SPECIAL CASE: HTP ===
+  // === SPECIAL CASE: HTP ===
   if (metricId === 'htp') {
     const htpT = PR_CONFIG.rules?.htpMinimum ?? 6;
     tip.html(`
       <strong>HTP</strong><br>
       <em>Weight: N/A</em><br><br>
       ${htpT}% minimum attainment required<br>
-      to prevent Protection from losing 50% of its score.
+      to prevent Protection from being cut by 50%.
     `);
-    const target = $(`#${metricId}`);
-    const off = target.offset();
-    const tipHeight = tip.outerHeight();
-    const tipWidth = tip.outerWidth();
-    tip.css({
-      top: off.top - tipHeight - 10,
-      left: off.left + (target.outerWidth() / 2) - (tipWidth / 2),
-      display: 'block'
-    });
+    positionTooltipAbove(`#${metricId}`);
     return;
   }
 
-  // === 2) FOR DUAL INPUT METRICS ===
+  // === DUAL INPUT METRICS ===
   if (['opps', 'ppvga', 'internet', 'accessories'].includes(metricId)) {
     const actual = parseFloat($(`#${metricId}-actual`).val()) || 0;
     const goal = parseFloat($(`#${metricId}-goal`).val()) || 0;
@@ -578,19 +577,11 @@ function renderTooltip(metricId) {
       ${feedback}
     `);
 
-    const target = $(`#${metricId}-actual`);
-    const off = target.offset();
-    const tipHeight = tip.outerHeight();
-    const tipWidth = tip.outerWidth();
-    tip.css({
-      top: off.top - tipHeight - 10,
-      left: off.left + (target.outerWidth() / 2) - (tipWidth / 2),
-      display: 'block'
-    });
+    positionTooltipAbove(`#${metricId}-actual`);
     return;
   }
 
-  // === 3) FOR SINGLE INPUT METRICS ===
+  // === SINGLE INPUT METRICS ===
   if (['protection', 'rate-plan', 'next-up', 'csat'].includes(metricId)) {
     const currentVal = parseFloat($(`#${metricId}`).val()) || 0;
     const min = minToScore(active, groupKey);
@@ -603,7 +594,7 @@ function renderTooltip(metricId) {
     let feedback = '';
     if (nextMilestone) {
       const diff = (nextMilestone[0] - currentVal).toFixed(1);
-      feedback = `💡 Need +${diff}% more to reach <b>${nextMilestone[1]} pts</b>.`;
+      feedback = `💡 Need +${diff}% to reach <b>${nextMilestone[1]} pts</b>.`;
     } else {
       feedback = `🏆 <b>Max tier reached</b> (${currentTier} pts). Excellent!`;
     }
@@ -616,37 +607,71 @@ function renderTooltip(metricId) {
       ${feedback}
     `);
 
-    const target = $(`#${metricId}`);
-    const off = target.offset();
-    const tipHeight = tip.outerHeight();
-    const tipWidth = tip.outerWidth();
-    tip.css({
-      top: off.top - tipHeight - 10,
-      left: off.left + (target.outerWidth() / 2) - (tipWidth / 2),
-      display: 'block'
-    });
+    positionTooltipAbove(`#${metricId}`);
     return;
   }
+}
+
+
+/* === SMART POSITIONER: centered horizontally, aligned above input vertically === */
+function positionTooltipAbove(selector) {
+  const tip = $('#tooltip');
+  const target = $(selector);
+  if (!target.length) return;
+
+  const off = target.offset();
+  const tipHeight = tip.outerHeight();
+  const scrollY = $(window).scrollTop();
+  const winW = $(window).width();
+
+  // Keep same vertical height (above input field)
+  let top = off.top - tipHeight - 10 - scrollY;
+
+  // Center tooltip horizontally in the viewport
+  const tipWidth = tip.outerWidth();
+  let left = (winW - tipWidth) / 2;
+
+  // Prevent overflow on tiny screens
+  if (left < 5) left = 5;
+  if (left + tipWidth > winW - 5) left = winW - tipWidth - 5;
+
+  tip.css({
+    top: top,
+    left: left,
+    display: 'block',
+    opacity: 0
+  }).stop(true, true).animate({ opacity: 1 }, 150);
 }
 
 $(document)
   .on('focus', '.input-field', function() {
     const id = $(this).attr('id');
     const baseId = id.replace(/-(actual|goal)$/, '');
-    const validMetrics = ['opps','ppvga','internet','accessories','htp','protection','rate-plan','next-up','csat'];
+    const validMetrics = [
+      'opps','ppvga','internet','accessories',
+      'htp','protection','rate-plan','next-up','csat'
+    ];
+
     if (validMetrics.includes(baseId)) {
+      $('#tooltip').stop(true, true).show();
       activeTooltipMetric = baseId;
       renderTooltip(baseId);
     }
   })
-  .on('blur', '.input-field', function() {
+  .on('blur', '.input-field', function(e) {
+    const nextTarget = e.relatedTarget;
+    if (nextTarget && $(nextTarget).hasClass('input-field')) {
+      return; // skip hiding when switching between fields
+    }
     activeTooltipMetric = null;
-    $('#tooltip').hide();
+    $('#tooltip').fadeOut(150);
   })
   .on('input', '.input-field', function() {
     if (!activeTooltipMetric) return;
     renderTooltip(activeTooltipMetric);
   });
+
+
 
 
 
