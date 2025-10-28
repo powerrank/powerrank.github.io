@@ -2,29 +2,27 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <meta name="description"
-        content="Power Ranks Calculator is a sales performance tool that helps store leaders calculate their Power Rank by evaluating key metrics." />
-  <title>Power Rank Calculator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="description" content="RSC Power Rank Calculator – Dual Input Version" />
+  <title>RSC Power Rank Calculator (v2)</title>
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
   <script>
-  /* ==== CONFIG ENGINE (extended for wildcards) ==== */
+  /* ==== CONFIG ENGINE ==== */
   let PR_CONFIG = {};
 
   async function loadConfig() {
     try {
-      const res = await fetch('config.json', { cache: 'no-store' });
+      const res = await fetch('./config.json', { cache: 'no-store' });
       if (res.ok) {
         PR_CONFIG = await res.json();
-        localStorage.setItem('pr_config_cache', JSON.stringify(PR_CONFIG));
+        localStorage.setItem('rsc_config_cache', JSON.stringify(PR_CONFIG));
       } else {
-        const cached = localStorage.getItem('pr_config_cache');
+        const cached = localStorage.getItem('rsc_config_cache');
         if (cached) PR_CONFIG = JSON.parse(cached);
       }
     } catch (e) {
-      const cached = localStorage.getItem('pr_config_cache');
+      const cached = localStorage.getItem('rsc_config_cache');
       if (cached) PR_CONFIG = JSON.parse(cached);
     }
   }
@@ -34,872 +32,657 @@
   function getActiveScale() {
     const fp = (typeof isInFootprint !== 'undefined' && isInFootprint) ? 'IF' : 'OOF';
     const base = PR_CONFIG.footprints;
-
-    // Resolve @same-as-IF pointers safely without mutating original
-    const ifRef = base.IF;
-    const oofRef = base.OOF;
-
-    const resolved = { IF: clone(ifRef), OOF: clone(oofRef) };
-
-    // thresholds
-    if (resolved.OOF.thresholds === '@same-as-IF') {
-      resolved.OOF.thresholds = clone(resolved.IF.thresholds);
-    }
-    // metricToGroup
-    if (resolved.OOF.metricToGroup === '@same-as-IF') {
-      resolved.OOF.metricToGroup = clone(resolved.IF.metricToGroup);
-    }
-    // wildcards
-    if (resolved.OOF.wildcards === '@same-as-IF') {
-      resolved.OOF.wildcards = clone(resolved.IF.wildcards);
-    }
-
+    const resolved = { IF: clone(base.IF), OOF: clone(base.OOF) };
+    if (resolved.OOF.thresholds === '@same-as-IF') resolved.OOF.thresholds = clone(resolved.IF.thresholds);
+    if (resolved.OOF.metricToGroup === '@same-as-IF') resolved.OOF.metricToGroup = clone(resolved.IF.metricToGroup);
     return resolved[fp];
   }
 
   function pointsFor(metricId, value, activeCfg) {
     const grp = activeCfg.metricToGroup[metricId];
     const table = activeCfg.thresholds[grp] || [];
-    for (let i = 0; i < table.length; i++) {
-      const [lo, hi, pts] = table[i];
-      if (value >= lo && value <= hi) return pts;
-    }
-    return table.length ? table[table.length - 1][2] : 0;
+    for (let i=0;i<table.length;i++){const[lo,hi,pts]=table[i];if(value>=lo&&value<=hi)return pts;}
+    return table.length?table[table.length-1][2]:0;
   }
 
-  // Compute the first boundary where points > 0 as a "minimum to receive points"
   function minToScore(activeCfg, groupKey) {
     const table = activeCfg.thresholds[groupKey] || [];
-    for (let i = 0; i < table.length; i++) {
-      const [lo, hi, pts] = table[i];
-      if (pts > 0) return lo;
-    }
+    for (let i=0;i<table.length;i++){const[lo,hi,pts]=table[i];if(pts>0)return lo;}
     return null;
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    loadConfig().then(() => {
-      try {
-        // after config loads, build UI bits that depend on it
-        setupWildcards();
-        if (typeof updatePowerRank === 'function') updatePowerRank();
-      } catch (_) {}
-    });
-  });
-  /* ==== END CONFIG ENGINE ==== */
+  function calcPercentage(actual,goal){if(!goal||goal===0)return 0;return Math.min(999,((actual/goal)*100).toFixed(1));}
   </script>
 
-  
+<style>
+  body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #f9f9f9;
+    padding: 120px 2% 150px 2%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0; padding: 5% 2%;
-      background-color: #f9f9f9;
-      padding-top: 120px; padding-bottom: 150px;
-      display: flex; flex-direction: column;
-      justify-content: center; align-items: center;
-      height: auto; position: relative; overflow-x: hidden;
-      touch-action: manipulation;
-    }
-    h1 { text-align: center; color: #333; margin-bottom: 10px; }
-    h3 { text-align: center; color: #333; margin-bottom: 1px; }
-    .input-container { width: 50%; max-width: 200px; margin: 0 auto; }
-    .input-field {
-      appearance: none; -webkit-appearance: none; -moz-appearance: none;
-      background-color: white; cursor: pointer; width: 40%; margin: 0;
-      min-height: 20px; padding: 10px; border: 2px solid #ccc; border-radius: 5px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      transition: border-color .3s, box-shadow .3s;
-      font-size: 16px; touch-action: manipulation;
-    }
-    .input-field:focus { border-color: #007BFF; box-shadow: 0 0 5px rgba(0,123,255,.5); outline: none; }
-    .input-wrapper { display: flex; align-items: center; margin-bottom: 10px; }
-    .htp-label { font-size: 13px; color: #555; }
-    .small-input { width: 45px; padding: 8px; }
-    .htp-input { width: 55px; padding: 6px 8px; font-size: 14px; }
-    .reduced-points { color: #c0392b !important; font-weight: bold; }
-    .htp-warning, .reduction-note { margin-left: 8px; font-size: 12px; color: #e74c3c; font-style: italic; }
-    label { margin-bottom: 5px; display: block; color: #555; }
-    .points { margin-left: 10px; width: 100px; font-weight: bold; color: #007BFF; }
-    .contribution { margin-left: 5px; font-weight: bold; color: #28a745; }
-    .percentage { margin-left: 5px; font-weight: bold; color: #333; }
-    .recommendation { margin-left: 10px; font-weight: bold; color: #FF5733; }
-    .tooltip {
-      position: absolute; background-color: #333; color: white; padding: 8px 12px; border-radius: 5px;
-      font-size: 14px; z-index: 1000; opacity: .95; pointer-events: none; max-width: 280px;
-      line-height: 1.4; text-align: center;
-    }
-    .floating-container {
-      position: fixed; top: 0; left: 0; right: 0; background-color: #007BFF; color: white;
-      padding: 10px; text-align: center; box-shadow: 0 -2px 10px rgba(0,0,0,.2); z-index: 1;
-    }
-    .result { font-size: 24px; font-weight: bold; margin-top: 10px; color: #333; }
+  h1, h3 {
+    text-align: center;
+    color: #333;
+  }
 
-    .hamburger-container {
-      position: fixed; top: 20px; left: 20px; background-color: rgba(255,255,255,.8);
-      border-radius: 10px; padding: 10px; box-shadow: 0 2px 5px rgba(0,0,0,.2); z-index: 2;
-    }
-    .hamburger-menu { cursor: pointer; }
-    .hamburger-menu .bar { width: 30px; height: 3px; background-color: #333; margin: 5px 0; transition: .4s; }
-    .hamburger-menu .bar:nth-child(2) { width: 20px; }
+  /* ===== Centered Input Layout ===== */
+  .input-container {
+    width: 95%;
+    max-width: 600px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
 
-    @media (max-width: 600px) {
-      .input-field { font-size: 16px; }
-      h1 { font-size: 24px; }
-      .floating-container { padding: 5px; }
-      .toast { max-width: 400px; }
-    }
+  label {
+    display: block;
+    text-align: center;
+    font-weight: 600;
+    margin: 8px 0 4px 0;
+  }
 
-    .slider-menu {
-      position: fixed; top: 0; left: -250px; width: 200px; height: 100%;
-      background-color: #007BFF; color: white; transition: left .3s ease; z-index: 2; padding: 20px;
-    }
-    .slider-menu h2 { text-align:center; margin-top:0; }
-    .slider-menu ul { list-style:none; padding:0; margin-top:30%; text-align:center; }
-    .slider-menu li { margin:20px 0; }
-    .slider-menu a { color:white; text-decoration:none; font-size:18px; }
-    .slider-menu a:hover { text-decoration: underline; }
-    .signature { position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%); font-size: 14px; color: #fff; text-align: center; }
+  .metric-group,
+  .input-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 10px;
+    padding: 6px 8px;
+    transition: background 0.3s;
+    border-radius: 6px;
+    width: 100%;
+  }
 
-    .floating-button-container {
-      position: fixed; top: 20px; right: 20px; background-color: rgba(255,255,255,.8);
-      border-radius: 10px; padding: 10px; box-shadow: 0 2px 5px rgba(0,0,0,.2); z-index: 2;
-    }
-    .setting-icon { width: 30px; height: 30px; cursor: pointer; display: block; margin: 0 auto; }
-    .floating-button { cursor: pointer; }
-    .floating-button .bar { width: 30px; height: 3px; background-color: #333; margin: 5px 0; transition: .4s; }
+  .metric-group:hover,
+  .input-wrapper:hover {
+    background: #eef6ff;
+  }
 
-    .slider-menu-right {
-      position: fixed; top: 0; right: -250px; width: 200px; height: 100%;
-      background-color: #007BFF; color: white; transition: right .3s ease; z-index: 2; padding: 20px;
-    }
-    .slider-menu-right h2 { margin-top: 0; }
-    .slider-menu-right button {
-      background-color: #FF5733; color: white; border: none; padding: 10px; margin-bottom: 10px;
-      border-radius: 5px; cursor: pointer; width: 100%;
-    }
-    .slider-menu-right button:hover { background-color: #FF3F3F; }
+  .input-field {
+    width: 60px;
+    padding: 8px;
+    border: 2px solid #ccc;
+    border-radius: 5px;
+    font-size: 12px;
+    text-align: center;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
 
-    .confirmation-popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: #000c19; color: white; padding: 10px 20px; border-radius: 5px; z-index: 1000; }
-    .popup-notification { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background-color: #2c4056; color: white; padding: 15px; border-radius: 5px; z-index: 1000; display: block; opacity: 0; transition: opacity 2s ease; }
-    .hidden { display: none; }
-  </style>
+  .input-field:focus {
+    border-color: #007BFF;
+    box-shadow: 0 0 5px rgba(0,123,255,0.5);
+    outline: none;
+  }
 
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-  <style>
-    body { font-family: 'Poppins', sans-serif; }
-    .input-field:focus { border-color: #0a84ff; box-shadow: 0 0 8px rgba(10,132,255,.6); transform: scale(1.02); transition: transform .2s ease, box-shadow .2s ease; }
-    .floating-container { transition: background-color .5s ease; }
-    .input-wrapper { transition: background-color .3s ease; border-radius: 5px; }
-    .input-wrapper:hover { background-color: #eef6ff; }
-    #hamburger-menu, #setting-icon { transition: transform .2s ease; }
-    #hamburger-menu:hover, #setting-icon:hover { transform: scale(1.1); }
-  </style>
+  .points {
+    min-width: 50px;
+    text-align: right;
+    font-weight: bold;
+    color: #007BFF;
+  }
 
-  <style>
-    .toast {
-      position: fixed; top: 20px; left: 50%; transform: translateX(-50%); min-width: 260px; max-width: 90vw;
-      padding: 16px 20px; background-color: #2c4056; color: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.2);
-      font-size: 16px; text-align: left; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity .5s ease;
-    }
-    .toast.show { opacity: 1; pointer-events: auto; }
-    .toast-actions { margin-top: 12px; display: flex; justify-content: center; }
-    .toast ul { margin: 10px 0; padding-left: 20px; }
-    .toast ul li { margin-bottom: 5px; }
-    .toast button { background-color: #FF5733; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-size: 14px; }
-    .toast button:hover { background-color: #FF3F3F; }
-  </style>
+  .percentage {
+    font-weight: bold;
+  }
+
+  .metric-group span,
+  .input-wrapper span {
+    font-weight: bold;
+    font-size: 14px;
+  }
+
+  .htp-warning {
+    margin-left: 8px;
+    font-size: 12px;
+    color: #e74c3c;
+    font-style: italic;
+    white-space: nowrap;
+  }
+
+  /* ===== % to Goal Mini Label ===== */
+  .metric-result {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 50px;
+  }
+
+  .mini-label {
+    font-size: 11px;
+    color: #777;
+    margin-bottom: 2px;
+    line-height: 1;
+  }
+
+
+  /* ===== Fix Internet Container Alignment ===== */
+  #internet-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;      /* Center the inner metric-group */
+    justify-content: center;
+  }
+
+  #internet-container .metric-group {
+    width: 100%;              /* Match all other metric rows */
+    justify-content: center;  /* Keep the contents centered */
+  }
+
+
+  /* ===== Floating Header ===== */
+  .floating-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: #007BFF;
+    color: white;
+    padding: 10px;
+    text-align: center;
+    z-index: 2;
+  }
+
+  /* ===== Tooltip (fixed + mobile-safe) ===== */
+  .tooltip{
+    position: fixed;             /* was absolute */
+    background:#1e1e1e;color:#fff;
+    padding:12px 16px;border-radius:10px;
+    font-size:13px;line-height:1.45;z-index:1000;
+    max-width:85vw;width:280px; /* clamp for mobile */
+    box-shadow:0 4px 10px rgba(0,0,0,.3);
+    opacity:.97;pointer-events:none;text-align:center;
+  }
+  .tooltip b{color:#00baff;}
+  .tooltip em{color:#bbb;font-size:12px;display:block;margin-top:2px;}
+
+
+
+
+  /* ===== Menus ===== */
+  .hamburger-container {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background-color: rgba(255,255,255,.8);
+    border-radius: 10px;
+    padding: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,.2);
+    z-index: 3;
+  }
+
+  .hamburger-menu {
+    cursor: pointer;
+  }
+
+  .hamburger-menu .bar {
+    width: 30px;
+    height: 3px;
+    background-color: #333;
+    margin: 5px 0;
+    transition: .4s;
+  }
+
+  .floating-button-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: rgba(255,255,255,.8);
+    border-radius: 10px;
+    padding: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,.2);
+    z-index: 3;
+  }
+
+  .setting-icon {
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    display: block;
+    margin: 0 auto;
+  }
+
+  /* ===== Sliders ===== */
+  .slider-menu,
+  .slider-menu-right {
+    position: fixed;
+    top: 0;
+    height: 100%;
+    width: 200px;
+    background-color: #007BFF;
+    color: white;
+    transition: all .3s ease;
+    z-index: 5;
+    padding: 20px;
+  }
+
+  .slider-menu { left: -250px; }
+  .slider-menu-right { right: -250px; }
+
+  .slider-menu h2,
+  .slider-menu-right h2 {
+    text-align: center;
+    margin-top: 0;
+  }
+
+  .slider-menu ul {
+    list-style: none;
+    padding: 0;
+    margin-top: 30%;
+    text-align: center;
+  }
+
+  .slider-menu li {
+    margin: 20px 0;
+  }
+
+  .slider-menu a {
+    color: white;
+    text-decoration: none;
+    font-size: 18px;
+  }
+
+  .slider-menu a:hover {
+    text-decoration: underline;
+  }
+
+  .slider-menu-right button {
+    background-color: #FF5733;
+    color: white;
+    border: none;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 100%;
+  }
+
+  .slider-menu-right button:hover {
+    background-color: #FF3F3F;
+  }
+
+  /* ===== Toast ===== */
+  .toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #2c4056;
+    color: white;
+    padding: 15px;
+    border-radius: 5px;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity .5s ease;
+  }
+
+  .toast.show {
+    opacity: 1;
+  }
+
+  /* ===== Misc ===== */
+  .hidden {
+    display: none !important;
+  }
+
+  .contribution {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 5px;
+    font-weight: bold;
+    color: #28a745;
+    font-size: 14px;
+  }
+
+  .contribution::before {
+    content: "★";
+    margin-right: 3px;
+    color: #28a745;
+    font-size: 14px;
+  }
+</style>
+
+
 </head>
 
 <body>
-  <div class="hamburger-container">
-    <div class="hamburger-menu" id="hamburger-menu">
-      <div class="bar"></div>
-      <div class="bar"></div>
-      <div class="bar"></div>
-    </div>
-  </div>
+  <div class="hamburger-container"><div class="hamburger-menu" id="hamburger-menu"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div></div>
+  <div class="floating-button-container"><img src="../setting.png" alt="Settings" id="setting-icon" class="setting-icon"></div>
 
-  <div class="floating-button-container">
-    <img src="setting.png" alt="Settings" id="setting-icon" class="setting-icon">
-  </div>
-
-  <div class="floating-container">
-    <h2 id="power-rank">Power Rank: 0</h2>
-  </div>
-
-  <h3 id="selected-scale-point">Point Scale: <span id="scale-point-text" style="color: #007BFF;">IN FOOT PRINT</span></h3>
-  <h1>Power Rank Calculator</h1>
+  <div class="floating-container"><h2 id="power-rank">Power Rank: 0</h2></div>
+  <h3 id="selected-scale-type">RSC Scale: <span id="scale-type-text" style="color:#007BFF;">Standard RSC</span></h3>
+  <h3 id="selected-scale-point">Point Scale: <span id="scale-point-text" style="color:#007BFF;">IN FOOT PRINT</span></h3>
+  <h1>RSC Power Rank Calculator</h1>
 
   <div class="input-container">
-    <label for="opps">Opps to Goal:</label>
-    <div class="input-wrapper">
-      <input type="tel" id="opps" class="input-field" oninput="updatePowerRank()" min="1" max="100">
-      <span class="percentage">%</span>
+
+    <!-- Dual Input Metrics -->
+    <label><strong>Opps:</strong></label>
+    <div class="metric-group">
+      <input id="opps-actual" type="tel" class="input-field" placeholder="MTD / RR">
+      <input id="opps-goal" type="tel" class="input-field" placeholder="Goal">
+      
+      <div class="metric-result">
+        <div class="mini-label">% to Goal</div>
+        <span id="opps-percent">0%</span>
+      </div>
+
       <span id="opps-points" class="points">0 Points</span>
-      <span id="opps-recommendation" class="recommendation"></span>
     </div>
 
-    <label for="ppvga">PPVGA to Goal:</label>
-    <div class="input-wrapper">
-      <input type="tel" id="ppvga" class="input-field" oninput="updatePowerRank()" min="1" max="100">
-      <span class="percentage">%</span>
+
+    <label><strong>PPVGA:</strong></label>
+    <div class="metric-group">
+      <input id="ppvga-actual" type="tel" class="input-field" placeholder="MTD / RR">
+      <input id="ppvga-goal" type="tel" class="input-field" placeholder="Goal">
+
+      <div class="metric-result">
+        <div class="mini-label">% to Goal</div>
+        <span id="ppvga-percent">0%</span>
+      </div>
+
       <span id="ppvga-points" class="points">0 Points</span>
-      <span id="ppvga-recommendation" class="recommendation"></span>
     </div>
+
 
     <div id="internet-container">
-      <label for="internet-goal">Internet to Goal:</label>
-      <div class="input-wrapper">
-        <input type="tel" id="internet" class="input-field" oninput="updatePowerRank()" min="1" max="100">
-        <span class="percentage">%</span>
+      <label><strong>Internet:</strong></label>
+      <div class="metric-group">
+        <input id="internet-actual" type="tel" class="input-field" placeholder="MTD / RR">
+        <input id="internet-goal" type="tel" class="input-field" placeholder="Goal">
+
+        <div class="metric-result">
+          <div class="mini-label">% to Goal</div>
+          <span id="internet-percent">0%</span>
+        </div>
+
         <span id="internet-points" class="points">0 Points</span>
-        <span id="internet-recommendation" class="recommendation"></span>
       </div>
     </div>
 
-    <label for="accessories">Accessories to Goal:</label>
-    <div class="input-wrapper">
-      <input type="tel" id="accessories" class="input-field" oninput="updatePowerRank()" min="1" max="100">
-      <span class="percentage">%</span>
+
+    <label><strong>Accessories:</strong></label>
+    <div class="metric-group">
+      <input id="accessories-actual" type="tel" class="input-field" placeholder="MTD / RR">
+      <input id="accessories-goal" type="tel" class="input-field" placeholder="Goal">
+
+      <div class="metric-result">
+        <div class="mini-label">% to Goal</div>
+        <span id="accessories-percent">0%</span>
+      </div>
+
       <span id="accessories-points" class="points">0 Points</span>
-      <span id="accessories-recommendation" class="recommendation"></span>
     </div>
 
-    <label for="protection">Protection:</label>
-    <div class="input-wrapper">
-      <input type="tel" id="protection" class="input-field" oninput="updatePowerRank()" min="0" max="100">
-      <span class="percentage">%</span>
-      <span id="protection-points" class="points">0 Points</span>
-      <span id="protection-recommendation" class="protection"></span>
-    </div>
 
-    <label for="htp" class="htp-label">HTP:</label>
-    <div class="htp-sub">
-      <input type="tel" id="htp" class="input-field small-input" oninput="updatePowerRank()" pattern="[0-9]*" inputmode="decimal" />
-      <span class="percentage">%</span>
-      <span id="htp-warning" class="htp-warning hidden">Low HTP - Protection Score Reduced</span>
-    </div>
+    <!-- Remaining Metrics -->
+    <label>Protection:</label>
+    <div class="input-wrapper"><input id="protection" type="tel" class="input-field"><span class="percentage">%</span>
+      <span id="protection-points" class="points">0 Points</span></div>
 
-    <label for="rate-plan">Rate Plan:</label>
-    <div class="input-wrapper">
-      <input type="tel" id="rate-plan" class="input-field" oninput="updatePowerRank()" min="1" max="100">
-      <span class="percentage">%</span>
-      <span id="rate-plan-points" class="points">0 Points</span>
-      <span id="rate-plan-recommendation" class="recommendation"></span>
-    </div>
+    <label>HTP:</label>
+    <div class="input-wrapper"><input id="htp" type="tel" inputmode="decimal" class="input-field" style="width:60px">
+      <span class="percentage">%</span><span id="htp-warning" class="htp-warning hidden">Low HTP -<br>Protection<br>Reduced</span></div>
 
-    <label for="next-up">Next Up:</label>
-    <div class="input-wrapper">
-      <input type="tel" id="next-up" class="input-field" oninput="updatePowerRank()" min="1" max="100">
-      <span class="percentage">%</span>
-      <span id="next-up-points" class="points">0 Points</span>
-      <span id="next-up-recommendation" class="recommendation"></span>
-    </div>
+    <label>Rate Plan:</label>
+    <div class="input-wrapper"><input id="rate-plan" type="tel" class="input-field"><span class="percentage">%</span>
+      <span id="rate-plan-points" class="points">0 Points</span></div>
 
-    <label for="csat">CSAT:</label>
-    <div class="input-wrapper">
-      <input type="tel" id="csat" class="input-field" oninput="updatePowerRank()" min="1" max="100">
-      <span class="percentage">%</span>
-      <span id="csat-points" class="points">0 Points</span>
-      <span id="csat-recommendation" class="recommendation"></span>
-    </div>
+    <label>Next Up:</label>
+    <div class="input-wrapper"><input id="next-up" type="tel" class="input-field"><span class="percentage">%</span>
+      <span id="next-up-points" class="points">0 Points</span></div>
 
-    <!-- WILDCARD-1 (label will be set dynamically) -->
-    <div id="wildcard-1-container">
-      <label for="wildcard-1"><span id="wildcard-1-label">Plus 1 to Goal</span></label>
-      <div class="input-wrapper">
-        <input type="tel" id="wildcard-1" class="input-field" oninput="updatePowerRank()" min="1" max="100">
-        <span class="percentage">%</span>
-        <span id="wildcard-1-points" class="points">0 Points</span>
-        <span id="wildcard-1-recommendation" class="recommendation"></span>
-      </div>
-    </div>
-
-    <!-- WILDCARD-2 (label will be set dynamically) -->
-    <div id="wildcard-2-container">
-      <label for="wildcard-2"><span id="wildcard-2-label">2nd Wildcard</span></label>
-      <div class="input-wrapper">
-        <input type="tel" id="wildcard-2" class="input-field" oninput="updatePowerRank()" min="1" max="100">
-        <span class="percentage">%</span>
-        <span id="wildcard-2-points" class="points">0 Points</span>
-        <span id="wildcard-2-recommendation" class="recommendation"></span>
-      </div>
-    </div>
-
-    <div class="tooltip" id="tooltip" style="display: none;"></div>
+    <label>CSAT:</label>
+    <div class="input-wrapper"><input id="csat" type="tel" class="input-field"><span class="percentage">%</span>
+      <span id="csat-points" class="points">0 Points</span></div>
   </div>
 
-  <!-- Sliding Menu -->
+  <div class="tooltip" id="tooltip" style="display:none;"></div>
+
   <div class="slider-menu" id="slider-menu">
-    <h2 class="slider-menu-title">Power Ranks</h2>
+    <h2>Power Ranks</h2>
     <ul>
-      <li><a href="/rsc/">RSC Calculator</a></li>
-      <li><a href="">Point Scales</a></li>
-      <li><a href="/faq/">FAQ</a></li>
+      <li><a href="../index.html">Store Calculator</a></li>
+      <li><a href="/">Point Scales</a></li>
+      <li><a href="../faq/">FAQ</a></li>
     </ul>
-    <div class="signature">
-      Built by <br> The Revenue Management Team
-    </div>
+    <div class="signature" style="text-align:center;position:absolute;bottom:50px;left:50%;transform:translateX(-50%);font-size:13px;">Built by<br>The Revenue Management Team</div>
   </div>
 
   <div class="slider-menu-right" id="slider-menu-right">
-    <h2 style="text-align: center;">Calculator Settings</h2>
-
-    <h4 style="text-align: center;">Pick Store Footprint</h4>
-    <button id="if-button">IF</button>
-    <button id="oof-button">OOF</button>
-
-    <!-- Dynamic wildcard menus will be injected here -->
-    <div id="wildcard-menus"></div>
-
-    <h4 style="text-align: center; margin-top: 16px;">Additional Options</h4>
-    <button id="toggle-contribution">Show Contribution</button>
+    <h2>Settings</h2>
+    <h4 style="text-align:center;margin-top:16px;">RSC Scale Options</h4>
+    <button id="toggle-rsc-scale">Use Reg. RSC Scale</button>
+    <h4 style="text-align:center;">Pick Footprint</h4>
+    <button id="if-button">In Footprint</button>
+    <button id="oof-button">Out of Footprint</button>
+    <h4 style="text-align:center;margin-top:16px;">Additional</h4>
+    <button id="toggle-contribution">Show Contributions</button>
     <button id="reset-button">Reset Calculator</button>
   </div>
 
-  <div id="toast" class="toast">
-    <div id="toast-message"></div>
-    <div class="toast-actions">
-      <button id="toast-close">Dismiss</button>
-    </div>
-  </div>
+  <div id="toast" class="toast"></div>
 
-  <script>
-    let isInFootprint = true;
-    let showContributions = false;
-    const CURRENT_VERSION = '2.3';
+<script>
+let isInFootprint=true,currentRank=0,useRegRscScale=false,showContributions=false;
 
-    function markReturningUser() {
-      localStorage.setItem('hasVisitedBefore', 'true');
+function getSettings(){return JSON.parse(localStorage.getItem('rscSettings')||'{}');}
+function saveSettings(){const s=getSettings();s.isInFootprint=isInFootprint;s.useRegRscScale=useRegRscScale;s.showContributions=showContributions;localStorage.setItem('rscSettings',JSON.stringify(s));}
+function saveInputs(){let v={};$('.input-field').each(function(){v[$(this).attr('id')]=$(this).val();});localStorage.setItem('rscInputs',JSON.stringify(v));}
+function loadInputs(){let s=localStorage.getItem('rscInputs');if(s){let v=JSON.parse(s);Object.keys(v).forEach(id=>{$(`#${id}`).val(v[id]);});}}
+function updateScaleLabels(){if(useRegRscScale){$('#scale-type-text').text('Reg. RSC').css('color','#FF8C00');}else{$('#scale-type-text').text('Standard RSC').css('color','#007BFF');}$('#scale-point-text').text(isInFootprint?'IN FOOT PRINT':'OUT OF FOOTPRINT');}
+
+function loadSettings(){
+  const s=getSettings();
+  isInFootprint=s.isInFootprint??true;
+  useRegRscScale=s.useRegRscScale??false;
+  showContributions=s.showContributions??false;
+  updateScaleLabels();
+  if(isInFootprint)$('#internet-container').show();else $('#internet-container').hide();
+  $('#toggle-rsc-scale').text(useRegRscScale?'Use Standard RSC Scale':'Use Reg. RSC Scale');
+  $('#toggle-contribution').text(showContributions?'Hide Contributions':'Show Contributions');
+  const active=getActiveScale();const target=useRegRscScale?'regrsc':'rsc';
+  ['opps','ppvga','internet','accessories'].forEach(m=>{active.metricToGroup[m]=target;});
+}
+
+function getColor(pr){if(pr<5)return'#FF3F3F';if(pr<6)return'#F8766C';if(pr<7)return'#F6A382';if(pr<8)return'#FCECA6';if(pr<9)return'#B6E8C0';if(pr<10)return'#8BD99A';return'#53C587';}
+function animatePowerRank(t){$({countNum:currentRank}).animate({countNum:t},{duration:500,easing:'swing',step:function(){$('#power-rank').text('Power Rank: '+this.countNum.toFixed(1));},complete:function(){$('#power-rank').text('Power Rank: '+t.toFixed(1));currentRank=t;}});}
+
+function updatePowerRank(){
+  const active=getActiveScale();const weights=active.weights;
+  const metrics=['opps','ppvga','internet','accessories'];const v={};
+  metrics.forEach(m=>{const a=parseFloat($(`#${m}-actual`).val())||0;const g=parseFloat($(`#${m}-goal`).val())||0;const p=calcPercentage(a,g);$(`#${m}-percent`).text(`${p}%`);v[m]=p;});
+  v.protection=parseFloat($('#protection').val())||0;v['rate-plan']=parseFloat($('#rate-plan').val())||0;v['next-up']=parseFloat($('#next-up').val())||0;v.csat=parseFloat($('#csat').val())||0;
+  const htp=parseFloat($('#htp').val())||0;const htpThreshold=PR_CONFIG.rules?.htpMinimum??6;
+  let totalPoints=0,totalWeight=0;
+  Object.keys(weights).forEach(id=>{let val=v[id]||0;let pts=pointsFor(id,val,active);
+    if(id==='protection'&&htp<htpThreshold){pts=Math.floor(pts/2);$(`#${id}-points`).css('color','#e74c3c');}
+    else if(id==='protection'){$(`#${id}-points`).css('color','#007BFF');}
+    totalPoints+=pts*weights[id];totalWeight+=weights[id];
+    let contrib=((pts*weights[id])/100).toFixed(2);
+    $(`#${id}-points`).html(`${pts} Points <span class="contribution ${showContributions?'':'hidden'}">${contrib}</span>`);});
+  if(htp<htpThreshold)$('#htp-warning').removeClass('hidden');else $('#htp-warning').addClass('hidden');
+  const raw=totalWeight?(totalPoints/totalWeight):0;const rank=Math.floor(raw*10)/10;
+  animatePowerRank(rank);$('.floating-container').css('background',getColor(rank));
+}
+
+let activeTooltipMetric = null; // track which metric tooltip belongs to
+
+function renderTooltip(metricId) {
+  const tip = $('#tooltip');
+  const active = getActiveScale();
+  const groupKey = active.metricToGroup[metricId];
+  const table = active.thresholds[groupKey] || [];
+  const weight = active.weights[metricId] || 0;
+
+  // === SPECIAL CASE: HTP ===
+  if (metricId === 'htp') {
+    const htpT = PR_CONFIG.rules?.htpMinimum ?? 6;
+    tip.html(`
+      <strong>HTP</strong><br>
+      <em>Weight: N/A</em><br><br>
+      ${htpT}% minimum attainment required<br>
+      to prevent Protection from being cut by 50%.
+    `);
+    positionTooltipCenteredAbove('#' + metricId);
+    return;
+  }
+
+  // === DUAL INPUT METRICS ===
+  if (['opps', 'ppvga', 'internet', 'accessories'].includes(metricId)) {
+    const actual = parseFloat($(`#${metricId}-actual`).val()) || 0;
+    const goal = parseFloat($(`#${metricId}-goal`).val()) || 0;
+    const percent = calcPercentage(actual, goal);
+
+    let currentTier = 0, nextMilestone = null;
+    for (let [lo, hi, pts] of table) {
+      if (percent >= lo && percent <= hi) currentTier = pts;
+      if (!nextMilestone && percent < lo) nextMilestone = [lo, pts];
     }
 
-    function getSettings() {
-      return JSON.parse(localStorage.getItem('powerRankSettings') || '{}');
-    }
-    function setSettings(s) {
-      localStorage.setItem('powerRankSettings', JSON.stringify(s));
-    }
-
-    function saveSettings() {
-      const s = getSettings();
-      s.isInFootprint = isInFootprint;
-      s.showContributions = showContributions;
-      setSettings(s);
-    }
-
-    function saveInputs() {
-      let inputValues = {};
-      $('.input-field').each(function() {
-        inputValues[$(this).attr('id')] = $(this).val();
-      });
-      localStorage.setItem('powerRankInputs', JSON.stringify(inputValues));
-    }
-
-    function loadSettings() {
-      const s = getSettings();
-
-      isInFootprint = s.isInFootprint ?? true;
-      showContributions = s.showContributions ?? false;
-
-      // Apply footprint display
-      if (isInFootprint) {
-        $('#scale-point-text').text('IN FOOT PRINT');
-        $('#internet-container').show();
+    let feedback = '';
+    if (goal > 0) {
+      if (nextMilestone) {
+        const neededPercent = nextMilestone[0];
+        const targetCount = Math.ceil(goal * (neededPercent / 100));
+        const moreNeeded = Math.max(targetCount - actual, 0);
+        feedback = `💡 Need <b>${moreNeeded}</b> more ${metricId === 'opps' ? 'Opps' : 'Units'} to reach <b>${neededPercent}%</b> (${nextMilestone[1]} pts).`;
       } else {
-        $('#scale-point-text').text('OUT OF FOOTPRINT');
-        $('#internet-container').hide();
-      }
-
-      // Apply contribution display
-      if (showContributions) {
-        $('.contribution').removeClass('hidden');
-        $('#toggle-contribution').text('Hide Contribution');
-      } else {
-        $('.contribution').addClass('hidden');
-        $('#toggle-contribution').text('Show Contribution');
+        feedback = `🏆 <b>Max tier reached</b> (${currentTier} pts). Excellent!`;
       }
     }
 
-    function loadInputs() {
-      let saved = localStorage.getItem('powerRankInputs');
-      if (saved) {
-        let inputValues = JSON.parse(saved);
-        Object.keys(inputValues).forEach(id => {
-          $(`#${id}`).val(inputValues[id]);
-        });
-      }
+    tip.html(`
+      <strong>${metricId.toUpperCase()}</strong><br>
+      <em>Weight: ${weight}%</em><br><br>
+      <b>Goal:</b> ${goal} | <b>Current:</b> ${actual} (${percent}%)<br>
+      ${feedback}
+    `);
+
+    positionTooltipCenteredAbove('#' + metricId + '-actual');
+    return;
+  }
+
+  // === SINGLE INPUT METRICS ===
+  if (['protection', 'rate-plan', 'next-up', 'csat'].includes(metricId)) {
+    const currentVal = parseFloat($(`#${metricId}`).val()) || 0;
+    const min = minToScore(active, groupKey);
+    let currentTier = 0, nextMilestone = null;
+    for (let [lo, hi, pts] of table) {
+      if (currentVal >= lo && currentVal <= hi) currentTier = pts;
+      if (!nextMilestone && currentVal < lo) nextMilestone = [lo, pts];
     }
 
-    function centeredText(text) { return `<div style="text-align: center;">${text}</div>`; }
-
-    function showToast(message, persistent = false) {
-      const toast = $('#toast');
-      $('#toast-message').html(message);
-      toast.addClass('show');
-
-      if (persistent) {
-        $('#toast-close').show();
-      } else {
-        $('#toast-close').hide();
-        clearTimeout(toastTimer);
-        toastTimer = setTimeout(() => { toast.removeClass('show'); }, 2000);
-      }
+    let feedback = '';
+    if (nextMilestone) {
+      const diff = (nextMilestone[0] - currentVal).toFixed(1);
+      feedback = `💡 Need +${diff}% to reach <b>${nextMilestone[1]} pts</b>.`;
+    } else {
+      feedback = `🏆 <b>Max tier reached</b> (${currentTier} pts). Excellent!`;
     }
 
-    let toastTimer;
-    $(document).on('click', '#toast-close', function() {
-      $('#toast').removeClass('show');
-      clearTimeout(toastTimer);
-    });
+    tip.html(`
+      <strong>${metricId.toUpperCase()}</strong><br>
+      <em>Weight: ${weight}%</em><br><br>
+      <b>Current:</b> ${currentVal}% → ${currentTier} pts<br>
+      <b>Minimum to earn points:</b> ${min}%<br><br>
+      ${feedback}
+    `);
 
-    // === Dynamic Wildcard Engine ===
-    function ensureWildcardDefaults(active) {
-      const s = getSettings();
-      const wildcards = active.wildcards || {};
+    positionTooltipCenteredAbove('#' + metricId);
+    return;
+  }
+}
 
-      Object.entries(wildcards).forEach(([id, def]) => {
-        const opts = def.options || [];
-        if (!opts.length) {
-          // no options: hide the input
-          $(`#${id}-container`).hide();
-          return;
-        }
 
-        // set label on the input
-        $(`#${id}-label`).text(def.label || id);
+/* === FIXED, CENTERED tooltip positioned above a target === */
+function positionTooltipCenteredAbove(selector){
+  const tip = $('#tooltip');
+  const $t = $(selector);
+  if (!$t.length) return;
 
-        // if exactly one option, store it and hide the picker (no buttons)
-        if (opts.length === 1) {
-          const opt = opts[0];
-          s[id] = { groupKey: opt.key, labelText: opt.label };
-          setSettings(s);
-          // also reflect selection in label (optional: append selected)
-          // $(`#${id}-label`).text(`${def.label} — ${opt.label}`);
-        } else {
-          // ensure we have a selection; default to first option
-          if (!s[id] || !s[id].groupKey) {
-            s[id] = { groupKey: opts[0].key, labelText: opts[0].label };
-            setSettings(s);
-          }
-        }
+  // Make tip measurable
+  tip.css({display:'block', visibility:'hidden', left:-9999, top:-9999});
 
-        // show the input if there are options
-        $(`#${id}-container`).show();
-      });
+  const rect = $t[0].getBoundingClientRect();         // viewport coords
+  const tipW = tip.outerWidth();
+  const tipH = tip.outerHeight();
+  const gap  = 10;
+
+  // Center horizontally on the screen
+  let left = (window.innerWidth - tipW) / 2;
+  left = Math.max(6, Math.min(left, window.innerWidth - tipW - 6)); // safe margins
+
+  // Place just above the input (stay on-screen if near the top)
+  let top = rect.top - tipH - gap;
+  if (top < 8) top = 8;
+
+  // Final paint
+  tip.css({ left: left, top: top, visibility:'visible', opacity:0 })
+     .stop(true,true).animate({opacity:1},120);
+}
+
+
+$(document)
+  .on('focus', '.input-field', function() {
+    const id = $(this).attr('id');
+    const baseId = id.replace(/-(actual|goal)$/, '');
+    const validMetrics = [
+      'opps','ppvga','internet','accessories',
+      'htp','protection','rate-plan','next-up','csat'
+    ];
+
+    if (validMetrics.includes(baseId)) {
+      $('#tooltip').stop(true, true).show();
+      activeTooltipMetric = baseId;
+      renderTooltip(baseId);
     }
-
-    function buildWildcardMenus() {
-      const menu = $('#wildcard-menus');
-      menu.empty();
-
-      const active = getActiveScale();
-      const wildcards = active.wildcards || {};
-
-      Object.entries(wildcards).forEach(([id, def]) => {
-        const opts = def.options || [];
-        if (opts.length <= 1) return; // no need for a menu if <=1 option
-
-        menu.append(`<h4 style="text-align: center; margin-top: 16px;">Pick ${def.label || id}</h4>`);
-        opts.forEach(opt => {
-          menu.append(`<button class="wildcard-option" data-wildcard="${id}" data-key="${opt.key}" data-label="${opt.label}">${opt.label}</button>`);
-        });
-      });
+  })
+  .on('blur', '.input-field', function(e) {
+    const nextTarget = e.relatedTarget;
+    if (nextTarget && $(nextTarget).hasClass('input-field')) {
+      return; // skip hiding when switching between fields
     }
+    activeTooltipMetric = null;
+    $('#tooltip').fadeOut(150);
+  })
+  .on('input', '.input-field', function() {
+    if (!activeTooltipMetric) return;
+    renderTooltip(activeTooltipMetric);
+  });
 
-    function setWildcard(id, groupKey, labelText, announce = true) {
-    const s = getSettings();
-    s[id] = { groupKey, labelText };
-    setSettings(s);
 
-    // Update label to show only the selected option name
-    $(`#${id}-label`).text(labelText);
+// Reposition on scroll/resize while a field is active
+$(window).on('scroll resize', function(){
+  if (!activeTooltipMetric) return;
+  const sel = ['opps','ppvga','internet','accessories'].includes(activeTooltipMetric)
+              ? `#${activeTooltipMetric}-actual`
+              : `#${activeTooltipMetric}`;
+  positionTooltipCenteredAbove(sel);
+});
 
-    updatePowerRank();
-    if (announce) showToast(centeredText(`<strong>${labelText}</strong> selected.`));
-    }
 
 
-    function setupWildcards() {
-    const active = getActiveScale();
-    ensureWildcardDefaults(active);
-    buildWildcardMenus();
 
-    // Apply the current selected option labels
-    const s = getSettings();
-    const wildcards = active.wildcards || {};
 
-    Object.entries(wildcards).forEach(([id, def]) => {
-        const sel = s[id];
-        const opts = def.options || [];
+function showToast(msg){const t=$('#toast');t.text(msg).addClass('show');setTimeout(()=>t.removeClass('show'),2000);}
+$('#hamburger-menu').click(function(e){const s=$('#slider-menu');s.css('left',s.css('left')==='0px'?'-250px':'0');e.stopPropagation();});
+$('#setting-icon').click(function(e){const s=$('#slider-menu-right');s.css('right',s.css('right')==='0px'?'-250px':'0');e.stopPropagation();});
+$(document).click(function(e){if($(e.target).closest('#slider-menu,#slider-menu-right').length===0){$('#slider-menu').css('left','-250px');$('#slider-menu-right').css('right','-250px');}});
 
-        if (opts.length === 1) {
-        // Single option — just show that option’s label
-        $(`#${id}-label`).text(opts[0].label);
-        } else if (sel?.labelText) {
-        // Multiple options — show selected label
-        $(`#${id}-label`).text(sel.labelText);
-        } else if (opts.length > 0) {
-        // No saved selection — default to first option
-        $(`#${id}-label`).text(opts[0].label);
-        }
-    });
-    }
+$('#if-button').click(function(){isInFootprint=true;$('#scale-point-text').text('IN FOOT PRINT');$('#internet-container').show();showToast('In Footprint scale selected.');updatePowerRank();saveSettings();});
+$('#oof-button').click(function(){isInFootprint=false;$('#scale-point-text').text('OUT OF FOOTPRINT');$('#internet-container').hide();showToast('Out of Footprint scale selected.');updatePowerRank();saveSettings();});
+$('#toggle-rsc-scale').click(function(){useRegRscScale=!useRegRscScale;const act=getActiveScale();const target=useRegRscScale?'regrsc':'rsc';['opps','ppvga','internet','accessories'].forEach(m=>{act.metricToGroup[m]=target;});updatePowerRank();updateScaleLabels();showToast(useRegRscScale?'Reg. RSC scale activated.':'Standard RSC scale restored.');$(this).text(useRegRscScale?'Use Standard RSC Scale':'Use Reg. RSC Scale');saveSettings();});
+$('#toggle-contribution').click(function(){showContributions=!showContributions;if(showContributions){$('.contribution').removeClass('hidden');$(this).text('Hide Contributions');showToast('Metric contribution points are now visible.');}else{$('.contribution').addClass('hidden');$(this).text('Show Contributions');showToast('Metric contribution points are now hidden.');}updatePowerRank();saveSettings();});
+$('#reset-button').click(function(){$('.input-field').val('');localStorage.removeItem('rscInputs');updatePowerRank();showToast('Calculator reset.');showContributions=false;useRegRscScale=false;isInFootprint=true;saveSettings();});
 
-
-
-   function resetCalculator() {
-       console.log('Resetting calculator... Config loaded:', !!PR_CONFIG); // Confirm config is available
-       // Clear saved inputs first to prevent rehydration
-       localStorage.removeItem('powerRankInputs');
-
-       // Clear all input fields visually and ensure no event interference
-       $('.input-field').each(function() {
-           $(this).val('').trigger('input'); // Clear and trigger input event to update immediately
-       });
-
-       // Reset contribution visibility
-       showContributions = false;
-       $('.contribution').addClass('hidden');
-       $('#toggle-contribution').text('Show Contribution');
-
-       // Reset wildcard selections to footprint defaults (first options)
-       const active = getActiveScale();
-       const wildcards = active.wildcards || {};
-       const s = getSettings();
-
-       Object.entries(wildcards).forEach(([id, def]) => {
-           const opts = def.options || [];
-           if (opts.length) {
-               s[id] = { groupKey: opts[0].key, labelText: opts[0].label };
-           } else {
-               delete s[id];
-           }
-       });
-
-       setSettings(s);
-       saveSettings();
-
-       // Rebuild wildcard menus & labels
-       setupWildcards();
-
-       // Immediately reset Power Rank UI and internal counter
-       currentRank = 0;
-       $('#power-rank').text('Power Rank: 0'); // Explicitly set to "0" to avoid "0.0" confusion
-
-       // Force a recalculation with cleared inputs
-       updatePowerRank();
-       console.log('Calculator reset complete.');
-   }
-   
-
-
-
-    // Base tooltip copy (non-wildcards can remain static)
-    const tooltips = {
-      'opps': '50% minimum to receive points',
-      'ppvga': '50% minimum to receive points',
-      'internet': '60% minimum to receive points',
-      'accessories': '50% minimum to receive points',
-      'protection': '60% minimum to receive points',
-      'htp': '6% minimum attainment to prevent losing 50% of protection score',
-      'rate-plan': '65% minimum to receive points',
-      'next-up': '60% minimum to receive points',
-      'csat': '80% minimum to receive points'
-      // wildcard tooltips are computed dynamically
-    };
-
-    // Tooltip handling with dynamic wildcard minimums
-    $(document).on('focus', '.input-field', function () {
-      const inputId = $(this).attr('id');
-      const tooltip = $('#tooltip');
-
-      const active = getActiveScale();
-      let tooltipText = tooltips[inputId] || null;
-
-      // dynamic for wildcards
-      if (inputId.startsWith('wildcard')) {
-        const s = getSettings();
-        const sel = s[inputId];
-        if (sel && sel.groupKey) {
-          const min = minToScore(active, sel.groupKey);
-          if (min !== null) {
-            tooltipText = `${min}% minimum to receive points`;
-          }
-        }
-        // add weight line
-      }
-
-      if (!tooltipText) return;
-
-      const wx = (active.weights[inputId]) || 0;
-      tooltip.html(`${tooltipText}<br><strong>Weight: ${wx}%</strong>`);
-
-      const windowWidth = $(window).width();
-      const tooltipWidth = tooltip.outerWidth();
-      const inputOffset = $(this).offset();
-      const tooltipTop = inputOffset.top - tooltip.outerHeight() - 10;
-
-      tooltip.css({
-        top: tooltipTop,
-        left: (windowWidth / 2) - (tooltipWidth / 2),
-        display: 'block'
-      });
-    }).on('blur', '.input-field', function () {
-      $('#tooltip').hide();
-    });
-
-    function getPointsNeededForNextPowerRank(totalPoints) {
-      if (totalPoints >= 5 && totalPoints <= 7) return 8 - totalPoints;
-      if (totalPoints >= 8 && totalPoints <= 15) return 16 - totalPoints;
-      if (totalPoints >= 16 && totalPoints <= 23) return 24 - totalPoints;
-      if (totalPoints >= 24 && totalPoints <= 31) return 32 - totalPoints;
-      if (totalPoints >= 32 && totalPoints <= 39) return 40 - totalPoints;
-      if (totalPoints >= 40 && totalPoints <= 47) return 48 - totalPoints;
-      if (totalPoints >= 48 && totalPoints <= 55) return 56 - totalPoints;
-      if (totalPoints >= 56 && totalPoints <= 63) return 64 - totalPoints;
-      if (totalPoints >= 64 && totalPoints <= 71) return 72 - totalPoints;
-      if (totalPoints >= 72 && totalPoints <= 79) return 80 - totalPoints;
-      return 0;
-    }
-
-    let currentRank = 0;
-
-    function animatePowerRank(target) {
-      $({ countNum: currentRank }).animate({ countNum: target }, {
-        duration: 500,
-        easing: 'swing',
-        step: function() {
-          $('#power-rank').text('Power Rank: ' + this.countNum.toFixed(1));
-        },
-        complete: function() {
-          $('#power-rank').text('Power Rank: ' + target.toFixed(1));
-          currentRank = target;
-        }
-      });
-    }
-
-    function updatePowerRank() {
-      let values = {
-        'opps': parseFloat($('#opps').val()) || 0,
-        'ppvga': parseFloat($('#ppvga').val()) || 0,
-        'accessories': parseFloat($('#accessories').val()) || 0,
-        'protection': parseFloat($('#protection').val()) || 0,
-        'rate-plan': parseFloat($('#rate-plan').val()) || 0,
-        'next-up': parseFloat($('#next-up').val()) || 0,
-        'csat': parseFloat($('#csat').val()) || 0,
-        'wildcard-1': parseFloat($('#wildcard-1').val()) || 0,
-        'wildcard-2': parseFloat($('#wildcard-2').val()) || 0
-      };
-
-      const htpValue = parseFloat($('#htp').val()) || 0;
-
-      if (htpValue < (PR_CONFIG.rules?.protectionHalfIfHtpBelow ?? 6)) {
-        $('#htp-warning').removeClass('hidden');
-      } else {
-        $('#htp-warning').addClass('hidden');
-      }
-
-      let active = getActiveScale();
-
-      // Dynamically route ALL configured wildcards to their chosen threshold group
-      const s = getSettings();
-      const wildcards = active.wildcards || {};
-      const originalMap = {};
-
-      Object.keys(wildcards).forEach(wcId => {
-        // preserve original to avoid mutation side effects
-        originalMap[wcId] = active.metricToGroup[wcId];
-        if (s[wcId]?.groupKey) {
-          active.metricToGroup[wcId] = s[wcId].groupKey;
-        }
-      });
-
-      let weights = active.weights;
-
-      if (isInFootprint) values['internet'] = parseFloat($('#internet').val()) || 0;
-
-      let totalPoints = 0;
-      let totalWeight = 0;
-
-      Object.keys(values).forEach(metricId => {
-        // Skip metrics that don't exist in the current footprint weights (e.g., internet in OOF)
-        if (weights[metricId] === undefined) return;
-
-        let val = values[metricId];
-        let pts = pointsFor(metricId, val, active);
-
-        // Apply 50% reduction if HTP below rule for protection
-        if (metricId === 'protection' && htpValue < (PR_CONFIG.rules?.protectionHalfIfHtpBelow ?? 6)) {
-          pts = Math.floor(pts / 2);
-        }
-
-        let weight = weights[metricId] || 0;
-        let contribution = ((pts * weight) / 100).toFixed(2);
-
-        totalPoints += (pts * weight);
-        totalWeight += weight;
-
-        let pointsText = `${pts} Points`;
-        if (metricId === 'protection' && htpValue < (PR_CONFIG.rules?.protectionHalfIfHtpBelow ?? 6)) {
-          pointsText = `<span style="color: #e74c3c;">${pts} Points</span>`;
-        }
-
-        $(`#${metricId}-points`).html(`${pointsText} <span class="contribution ${showContributions ? '' : 'hidden'}">★ ${contribution}</span>`);
-      });
-
-      // restore original wildcard mapping to avoid side-effects
-      Object.keys(originalMap).forEach(wcId => {
-        active.metricToGroup[wcId] = originalMap[wcId];
-      });
-
-      const raw = totalWeight ? (totalPoints / totalWeight) : 0;
-      const powerRank = Math.floor(raw * 10) / 10; // truncate to 1 decimal
-      animatePowerRank(powerRank);
-      $('.floating-container').css('background-color', getColor(powerRank));
-    }
-
-    function getColor(powerRank) {
-      if (powerRank < 2) return '#FF3F3F';
-      if (powerRank < 3) return '#FF3F3F';
-      if (powerRank < 4) return '#F65448';
-      if (powerRank < 5) return '#F7665B';
-      if (powerRank < 6) return '#F8766C';
-      if (powerRank < 7) return '#F6A382';
-      if (powerRank < 8) return '#FCECA6';
-      if (powerRank < 9) return '#B6E8C0';
-      if (powerRank < 10) return '#8BD99A';
-      return '#53C587';
-    }
-
-    $(document).ready(function() {
-      loadSettings();
-
-      // Left slider toggle
-      $('#hamburger-menu').click(function(event) {
-        const sliderMenu = $('#slider-menu');
-        if (sliderMenu.css('left') === '0px') sliderMenu.css('left', '-250px');
-        else sliderMenu.css('left', '0');
-        event.stopPropagation();
-      });
-
-      // Right slider toggle
-      $('#setting-icon').click(function(event) {
-        const sliderMenuRight = $('#slider-menu-right');
-        if (sliderMenuRight.css('right') === '0px') sliderMenuRight.css('right', '-250px');
-        else sliderMenuRight.css('right', '0');
-        event.stopPropagation();
-      });
-
-    // ✅ Replace your current "Click outside to close sliders" handler with this:
-    $(document).click(function(event) {
-    // Only close sliders if the click happened completely outside both menus
-    if (
-        $(event.target).closest('#slider-menu, #slider-menu-right').length === 0 &&
-        !$(event.target).is('#setting-icon') &&
-        !$(event.target).is('#hamburger-menu')
-    ) {
-        const sliderMenu = $('#slider-menu');
-        const sliderMenuRight = $('#slider-menu-right');
-        if (sliderMenu.css('left') === '0px') sliderMenu.css('left', '-250px');
-        if (sliderMenuRight.css('right') === '0px') sliderMenuRight.css('right', '-250px');
-    }
-    });
-
-
-      $('#toggle-contribution').click(function () {
-        showContributions = !showContributions;
-        if (showContributions) {
-          $('.contribution').removeClass('hidden');
-          $(this).text('Hide Contribution');
-          showToast('Metric contribution points are now visible.');
-        } else {
-          $('.contribution').addClass('hidden');
-          $(this).text('Show Contribution');
-          showToast('Metric contribution points are now hidden.');
-        }
-        saveSettings();
-      });
-
-      // Footprint selectors
-      $('#if-button').click(function(event) {
-        console.log('In Foot Print button clicked');
-        isInFootprint = true;
-        $('#scale-point-text').text('IN FOOT PRINT');
-        $('#internet-container').show();
-        setupWildcards(); // rebuild menus/labels for this footprint
-        showToast(centeredText('In Footprint scale selected.'));
-        updatePowerRank();
-        event.stopPropagation();
-        saveSettings();
-      });
-
-      $('#oof-button').click(function(event) {
-        isInFootprint = false;
-        $('#scale-point-text').text('OUT OF FOOTPRINT');
-        $('#internet-container').hide();
-        setupWildcards(); // rebuild menus/labels for this footprint
-        showToast(centeredText('Out of Footprint scale selected.'));
-        updatePowerRank();
-        event.stopPropagation();
-        saveSettings();
-      });
-
-      // Dynamic wildcard option selection
-      $(document).on('click', '.wildcard-option', function() {
-        const id = $(this).data('wildcard');
-        const key = $(this).data('key');
-        const label = $(this).data('label');
-        setWildcard(id, key, label);
-      });
-
-
-      $('#reset-button').click(function(event) {
-        event.stopPropagation();
-        event.preventDefault();
-
-        console.log('Reset button clicked');
-        resetCalculator();
-        $('#slider-menu-right').css('right', '-250px'); // Close the right slider
-        showToast(centeredText('Calculator has been reset.'));
-    });
-
-      $('.input-field').on('input', function() {
-        updatePowerRank();
-        saveInputs();
-        saveSettings();
-      });
-      loadInputs();
-
-      const isReturningUser = localStorage.getItem('hasVisitedBefore') === 'true';
-      if (!isReturningUser) {
-        showToast(
-          `<h2 style="text-align: center; margin-bottom: 10px;">Welcome to the Power Rank Calculator!</h2>
-          <p style="text-align: center;"><strong>What's new on this update?</strong></p>
-          <ul style="padding-left: 50px; margin: 10px 0; text-align: left;">
-              <li>⭐ A total of 10 Metrics evaluated</li>
-              <li>🚀 Weighted Metrics & Footprint Options</li>
-              <li>📊 New Point Scale & FAQ Pages</li>
-              <li>✅ Your progress and settings are saved!</li>
-              <li>👀 More updates coming soon...</li>
-          </ul>
-          <p style="text-align: center;"><strong>Get started by entering your metrics!</strong></p>`,
-          true
-        );
-        markReturningUser();
-      } else {
-        showToast(
-          `<h2 style="text-align: center;">Welcome back! 👋</h2>
-          <p>Your previous inputs and settings have been loaded</p>`,
-          true
-        );
-      }
-
-      updatePowerRank();
-
-    });
-  </script>
+$(document).ready(function(){loadConfig().then(()=>{loadSettings();loadInputs();updateScaleLabels();updatePowerRank();$('.input-field').on('input',function(){updatePowerRank();saveInputs();saveSettings();});});});
+</script>
 </body>
 </html>
-
