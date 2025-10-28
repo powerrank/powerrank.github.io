@@ -30,13 +30,32 @@
   function clone(obj){ return JSON.parse(JSON.stringify(obj)); }
 
   function getActiveScale() {
-    const fp = (typeof isInFootprint !== 'undefined' && isInFootprint) ? 'IF' : 'OOF';
+    const fp = isInFootprint ? 'IF' : 'OOF';
     const base = PR_CONFIG.footprints;
     const resolved = { IF: clone(base.IF), OOF: clone(base.OOF) };
-    if (resolved.OOF.thresholds === '@same-as-IF') resolved.OOF.thresholds = clone(resolved.IF.thresholds);
-    if (resolved.OOF.metricToGroup === '@same-as-IF') resolved.OOF.metricToGroup = clone(resolved.IF.metricToGroup);
-    return resolved[fp];
+
+    // Ensure OOF inherits from IF if needed
+    if (resolved.OOF.thresholds === '@same-as-IF')
+      resolved.OOF.thresholds = clone(resolved.IF.thresholds);
+    if (resolved.OOF.metricToGroup === '@same-as-IF')
+      resolved.OOF.metricToGroup = clone(resolved.IF.metricToGroup);
+
+    const active = resolved[fp];
+
+    // ✅ Apply Regular RSC override dynamically
+    if (useRegRscScale) {
+      ['opps', 'ppvga', 'internet', 'accessories'].forEach(m => {
+        active.metricToGroup[m] = 'regrsc';
+      });
+    } else {
+      ['opps', 'ppvga', 'internet', 'accessories'].forEach(m => {
+        active.metricToGroup[m] = 'rsc';
+      });
+    }
+
+    return active;
   }
+
 
   function pointsFor(metricId, value, activeCfg) {
     const grp = activeCfg.metricToGroup[metricId];
@@ -448,7 +467,7 @@
   <div class="slider-menu" id="slider-menu">
     <h2>Power Ranks</h2>
     <ul>
-      <li><a href="../index.html">Store Calculator</a></li>
+      <li><a href="/">Store Calculator</a></li>
       <li><a href="/">Point Scales</a></li>
       <li><a href="../faq/">FAQ</a></li>
     </ul>
@@ -682,8 +701,24 @@ $('#setting-icon').click(function(e){const s=$('#slider-menu-right');s.css('righ
 $(document).click(function(e){if($(e.target).closest('#slider-menu,#slider-menu-right').length===0){$('#slider-menu').css('left','-250px');$('#slider-menu-right').css('right','-250px');}});
 
 $('#if-button').click(function(){isInFootprint=true;$('#scale-point-text').text('IN FOOT PRINT');$('#internet-container').show();showToast('In Footprint scale selected.');updatePowerRank();saveSettings();});
+
 $('#oof-button').click(function(){isInFootprint=false;$('#scale-point-text').text('OUT OF FOOTPRINT');$('#internet-container').hide();showToast('Out of Footprint scale selected.');updatePowerRank();saveSettings();});
-$('#toggle-rsc-scale').click(function(){useRegRscScale=!useRegRscScale;const act=getActiveScale();const target=useRegRscScale?'regrsc':'rsc';['opps','ppvga','internet','accessories'].forEach(m=>{act.metricToGroup[m]=target;});updatePowerRank();updateScaleLabels();showToast(useRegRscScale?'Reg. RSC scale activated.':'Standard RSC scale restored.');$(this).text(useRegRscScale?'Use Standard RSC Scale':'Use Reg. RSC Scale');saveSettings();});
+
+$('#toggle-rsc-scale').click(function(){
+  useRegRscScale = !useRegRscScale;
+  updateScaleLabels();
+  updatePowerRank();
+  showToast(useRegRscScale
+    ? 'Reg. RSC scale activated.'
+    : 'Standard RSC scale restored.'
+  );
+  $(this).text(useRegRscScale
+    ? 'Use Standard RSC Scale'
+    : 'Use Reg. RSC Scale'
+  );
+  saveSettings();
+});
+
 $('#toggle-contribution').click(function(){showContributions=!showContributions;if(showContributions){$('.contribution').removeClass('hidden');$(this).text('Hide Contributions');showToast('Metric contribution points are now visible.');}else{$('.contribution').addClass('hidden');$(this).text('Show Contributions');showToast('Metric contribution points are now hidden.');}updatePowerRank();saveSettings();});
 $('#reset-button').click(function(){$('.input-field').val('');localStorage.removeItem('rscInputs');updatePowerRank();showToast('Calculator reset.');showContributions=false;useRegRscScale=false;isInFootprint=true;saveSettings();});
 
