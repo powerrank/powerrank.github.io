@@ -108,6 +108,45 @@
   },
   "rules": {
     "htpMinimum": 6
+  },
+"tooltips": {
+  "opps": {
+    "title": "Opps",
+    "desc": "Total Opps completed. Personalize every bundle — look for eligible upgrades, Internet, or Plus 1 opportunities!"
+  },
+  "ppvga": {
+    "title": "PPVGA",
+    "desc": "New lines sold. Build value by setting up AutoPay, applying FAN discounts, and educating customers on the best plan options!"
+  },
+  "internet": {
+    "title": "Internet",
+    "desc": "Internet services sold. Leverage Converged Offers and highlight Exclusive Rewards to drive more sales!"
+  },
+  "accessories": {
+    "title": "Accessories",
+    "desc": "Accessories sold. Pair protection and lifestyle products when bundling — and offer AIP to eligible customers!"
+  },
+  "protection": {
+    "title": "Protection",
+    "desc": "Protection attachment rate. Make coverage part of every sale — emphasize the value and peace of mind it provides!"
+  },
+  "htp": {
+    "title": "Home Tech Protection",
+    "desc": "Covers home electronics — from TVs to laptops to smart devices. Maintain at least 6% to protect your Protection metric points!"
+  },
+  "rate-plan": {
+    "title": "Rate Plan",
+    "desc": "Premium plans attachment rate. Guide customers toward plans that best fit their needs while showcasing added value!"
+  },
+  "next-up": {
+    "title": "Next Up",
+    "desc": "Next Up attachment rate. Explain how customers can upgrade to the latest phone every year — it’s the ultimate upgrade experience!"
+  },
+  "csat": {
+    "title": "CSAT",
+    "desc": "Customer satisfaction score. Follow up after each visit and coach customers on how to share their feedback on the survey!"
   }
+}
+
 
 }
