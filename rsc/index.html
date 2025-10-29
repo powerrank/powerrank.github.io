@@ -541,7 +541,10 @@ function updatePowerRank(){
   const htp=parseFloat($('#htp').val())||0;const htpThreshold=PR_CONFIG.rules?.htpMinimum??6;
   let totalPoints=0,totalWeight=0;
   Object.keys(weights).forEach(id=>{let val=v[id]||0;let pts=pointsFor(id,val,active);
-    if(id==='protection'&&htp<htpThreshold){pts=Math.floor(pts/2);$(`#${id}-points`).css('color','#e74c3c');}
+if (id === 'protection' && htp < htpThreshold) {
+  pts = parseFloat((pts / 2).toFixed(1));  // preserve 1 decimal place
+  $(`#${id}-points`).css('color', '#e74c3c');
+}
     else if(id==='protection'){$(`#${id}-points`).css('color','#007BFF');}
     totalPoints+=pts*weights[id];totalWeight+=weights[id];
     let contrib=((pts*weights[id])/100).toFixed(2);
