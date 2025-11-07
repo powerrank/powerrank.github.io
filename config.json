@@ -97,9 +97,9 @@
       },
       "wildcards": {
         "wildcard-1": {
-          "label": "Plus 1 to Goal",
+          "label": "CRU/FN to Goal",
           "options": [
-            { "key": "group1", "label": "Plus 1s to Goal" }
+            { "key": "group1", "label": "CRU/FN to Goal" }
           ]
         },
         "wildcard-2": {
