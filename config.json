@@ -3,8 +3,8 @@
   "footprints": {
     "IF": {
       "weights": {
-        "opps": 20,
-        "ppvga": 20,
+        "opps": 10,
+        "ppvga": 30,
         "internet": 20,
         "accessories": 10,
         "protection": 5,
@@ -105,16 +105,16 @@
         "wildcard-2": {
           "label": "2nd Wildcard",
           "options": [
-            { "key": "sigrate", "label": "Signature Rate" }
+            { "key": "group1", "label": "Plus 1s to Goal" }
           ]
         }
       }
     },
     "OOF": {
       "weights": {
-        "opps": 25,
-        "ppvga": 25,
-        "accessories": 20,
+        "opps": 20,
+        "ppvga": 40,
+        "accessories": 10,
         "protection": 5,
         "rate-plan": 5,
         "next-up": 5,
